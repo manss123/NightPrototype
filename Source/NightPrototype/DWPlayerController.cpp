@@ -24,6 +24,10 @@ ADWPlayerController::ADWPlayerController()
 
 	bShowMouseCursor = true;
 	DefaultMouseCursor = EMouseCursor::Default;
+	CurrentMouseCursor = EMouseCursor::Default;
+	
+	bEnableClickEvents = true;
+	bEnableMouseOverEvents = true;
 }
 
 void ADWPlayerController::BeginPlay()
@@ -260,6 +264,11 @@ void ADWPlayerController::CheckPendingInteract()
 	if (!ControlledPawn)
 	{
 		ClearPendingInteract();
+		return;
+	}
+	
+	if (bIsDestinationHeld && !bIsActionHoldMode)
+	{
 		return;
 	}
 
