@@ -2,3 +2,18 @@
 
 
 #include "DWInteractable.h"
+
+bool IDWInteractable::CanInteract_Implementation(AActor* Interactor)
+{
+	return true;
+}
+
+void IDWInteractable::OnInteractFocusBegin_Implementation(AActor* Interactor)
+{
+	
+}
+
+void IDWInteractable::OnInteractFocusEnd_Implementation(AActor* Interactor)
+{
+	
+}

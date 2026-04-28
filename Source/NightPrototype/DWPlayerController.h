@@ -39,9 +39,6 @@ protected:
 	float InteractDistance = 180.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	float FollowUpdateRate = 0.05f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float HoldToActionThreshold = 0.18f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
@@ -49,12 +46,20 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float RunSpeed = 650.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Feedback")
+	float CursorTraceDistance = 100000.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Feedback")
+	TSubclassOf<AActor> ClickIndicatorClass;
+	
+	UPROPERTY()
+	AActor* FocusedInteractActor = nullptr;
 
 	UPROPERTY()
 	AActor* PendingInteractActor = nullptr;
 
 	FTimerHandle InteractCheckTimerHandle;
-	FTimerHandle FollowCursorTimerHandle;
 
 	bool bIsDestinationHeld = false;
 	bool bIsActionHoldMode = false;
@@ -62,8 +67,6 @@ protected:
 
 	void HandleDestinationStarted();
 	void HandleDestinationCompleted();
-
-	void UpdateHeldDestination();
 
 	void IssueCommandUnderCursor(bool bAllowInteractCommand);
 	void MoveDirectlyTowardCursor();
@@ -78,4 +81,10 @@ protected:
 	void ClearPendingInteract();
 
 	void SetCharacterMoveSpeed(float NewSpeed);
+	
+	void UpdateInteractionFocus();
+	void SetFocusedInteractActor(AActor* NewFocusedActor);
+	void SpawnClickIndicator(const FVector& Location);
+	bool TraceCursor(FHitResult& OutHit);
+	bool IsUsableInteractable(AActor* Actor);
 };

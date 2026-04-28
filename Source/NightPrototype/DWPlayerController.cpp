@@ -13,6 +13,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
+#include "Engine/World.h"
 #include "NavigationSystem.h"
 #include "Engine/Engine.h"
 
@@ -62,6 +63,8 @@ void ADWPlayerController::SetupInputComponent()
 void ADWPlayerController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	
+	UpdateInteractionFocus();
 
 	if (!bIsDestinationHeld || !GetWorld())
 	{
@@ -98,31 +101,10 @@ void ADWPlayerController::HandleDestinationCompleted()
 {
 	bIsDestinationHeld = false;
 
-	GetWorldTimerManager().ClearTimer(FollowCursorTimerHandle);
-
 	if (bIsActionHoldMode)
 	{
 		ExitActionHoldMode();
 	}
-}
-
-void ADWPlayerController::UpdateHeldDestination()
-{
-	/*if (!bIsDestinationHeld || !GetWorld())
-	{
-		return;
-	}
-	const float HeldTime = GetWorld()->GetTimeSeconds() - DestinationHoldStartTime;
-
-	if (!bIsActionHoldMode && HeldTime >= HoldToActionThreshold)
-	{
-		EnterActionHoldMode();
-	}
-
-	if (bIsActionHoldMode)
-	{
-		MoveDirectlyTowardCursor();
-	}*/
 }
 
 void ADWPlayerController::EnterActionHoldMode()
@@ -135,13 +117,9 @@ void ADWPlayerController::EnterActionHoldMode()
 
 	SetIgnoreMoveInput(false);
 
-	ACharacter* ControlledCharacter = Cast<ACharacter>(GetPawn());
-
-	if (ControlledCharacter)
+	if (ACharacter* ControlledCharacter = Cast<ACharacter>(GetPawn()))
 	{
-		UCharacterMovementComponent* MoveComp = ControlledCharacter->GetCharacterMovement();
-
-		if (MoveComp)
+		if (UCharacterMovementComponent* MoveComp = ControlledCharacter->GetCharacterMovement())
 		{
 			MoveComp->SetMovementMode(MOVE_Walking);
 
@@ -154,13 +132,9 @@ void ADWPlayerController::ExitActionHoldMode()
 {
 	bIsActionHoldMode = false;
 
-	ACharacter* ControlledCharacter = Cast<ACharacter>(GetPawn());
-
-	if (ControlledCharacter)
+	if (ACharacter* ControlledCharacter = Cast<ACharacter>(GetPawn()))
 	{
-		UCharacterMovementComponent* MoveComp = ControlledCharacter->GetCharacterMovement();
-
-		if (MoveComp)
+		if (UCharacterMovementComponent* MoveComp = ControlledCharacter->GetCharacterMovement())
 		{
 			MoveComp->SetMovementMode(MOVE_Walking);
 			MoveComp->MaxWalkSpeed = WalkSpeed;
@@ -241,12 +215,12 @@ void ADWPlayerController::IssueCommandUnderCursor(bool bAllowInteractCommand)
 	{
 		return;
 	}
+	
+	SpawnClickIndicator(Hit.ImpactPoint);
 
 	AActor* HitActor = Hit.GetActor();
 
-	const bool bIsInteractable = HitActor && HitActor->GetClass()->ImplementsInterface(UDWInteractable::StaticClass());
-
-	if (bIsInteractable)
+	if (IsUsableInteractable(HitActor))
 	{
 		if (bAllowInteractCommand || PendingInteractActor == HitActor)
 		{
@@ -275,7 +249,7 @@ void ADWPlayerController::StartInteractCheckTimer()
 
 void ADWPlayerController::CheckPendingInteract()
 {
-	if (!PendingInteractActor)
+	if (!IsUsableInteractable(PendingInteractActor))
 	{
 		ClearPendingInteract();
 		return;
@@ -289,7 +263,9 @@ void ADWPlayerController::CheckPendingInteract()
 		return;
 	}
 
-	const float Distance = FVector::Dist2D(ControlledPawn->GetActorLocation(), PendingInteractActor->GetActorLocation());
+	const FVector targetLocation = IDWInteractable::Execute_GetInteractLocation(PendingInteractActor);
+	
+	float Distance = FVector::Dist2D(ControlledPawn->GetActorLocation(), targetLocation);
 
 	if (Distance <= InteractDistance)
 	{
@@ -356,4 +332,71 @@ void ADWPlayerController::SetCharacterMoveSpeed(float NewSpeed)
 	}
 
 	MoveComp->MaxWalkSpeed = NewSpeed;
+}
+
+// helpers
+bool ADWPlayerController::TraceCursor(FHitResult& OutHit)
+{
+	return GetHitResultUnderCursor(ECC_Visibility, true, OutHit);
+}
+
+bool ADWPlayerController::IsUsableInteractable(AActor* Actor)
+{
+	if (!Actor || !Actor->GetClass()->ImplementsInterface(UDWInteractable::StaticClass()))
+	{
+		return false;
+	}
+	
+	APawn* ControlledPawn = GetPawn();
+	return IDWInteractable::Execute_CanInteract(Actor, ControlledPawn);
+}
+
+void ADWPlayerController::UpdateInteractionFocus()
+{
+	FHitResult Hit;
+	AActor* NewFocusedActor = nullptr;
+	
+	if (TraceCursor(Hit) && IsUsableInteractable(Hit.GetActor()))
+	{
+		NewFocusedActor = Hit.GetActor();
+	}
+	
+	SetFocusedInteractActor(NewFocusedActor);
+	
+	CurrentMouseCursor = FocusedInteractActor ? EMouseCursor::Hand : EMouseCursor::Default;
+}
+
+void ADWPlayerController::SetFocusedInteractActor(AActor* NewFocusedActor)
+{
+	if (FocusedInteractActor == NewFocusedActor)
+	{
+		return;
+	}
+	
+	APawn* ControlledPawn = GetPawn();
+	
+	if (FocusedInteractActor && FocusedInteractActor->GetClass()->ImplementsInterface(UDWInteractable::StaticClass()))
+	{
+		IDWInteractable::Execute_OnInteractFocusEnd(FocusedInteractActor, ControlledPawn);
+	}
+	
+	FocusedInteractActor = NewFocusedActor;
+	
+	if (FocusedInteractActor)
+	{
+		IDWInteractable::Execute_OnInteractFocusBegin(FocusedInteractActor, ControlledPawn);
+	}
+}
+
+void ADWPlayerController::SpawnClickIndicator(const FVector& Location)
+{
+	if (!ClickIndicatorClass || !GetWorld())
+	{
+		return;
+	}
+	
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	
+	GetWorld()->SpawnActor<AActor>(ClickIndicatorClass, Location, FRotator::ZeroRotator, SpawnParams);
 }
