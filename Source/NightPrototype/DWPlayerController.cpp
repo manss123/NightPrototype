@@ -16,6 +16,9 @@
 #include "Engine/World.h"
 #include "NavigationSystem.h"
 #include "Engine/Engine.h"
+#include "Blueprint/UserWidget.h"
+#include "DWInteractionPromptWidget.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 
 ADWPlayerController::ADWPlayerController()
 {
@@ -47,6 +50,17 @@ void ADWPlayerController::BeginPlay()
 	}
 
 	SetCharacterMoveSpeed(WalkSpeed);
+	
+	if (InteractionPromptWidgetClass)
+	{
+		InteractionPromptWidget = CreateWidget<UDWInteractionPromptWidget>(this, InteractionPromptWidgetClass);
+		
+		if (InteractionPromptWidget)
+		{
+			InteractionPromptWidget->AddToViewport();
+			InteractionPromptWidget->SetVisibility(ESlateVisibility::Hidden);
+		}
+	}
 }
 
 void ADWPlayerController::SetupInputComponent()
@@ -69,6 +83,38 @@ void ADWPlayerController::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	
 	UpdateInteractionFocus();
+	
+	if (FocusedInteractActor && InteractionPromptWidget)
+	{
+		const FVector2D MousePosition =  UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
+		
+		FVector2D ViewportSize(0.0f, 0.0f);
+		if (GEngine && GEngine->GameViewport)
+		{
+			GEngine->GameViewport->GetViewportSize(ViewportSize);
+		}
+		
+		const FVector2D PromptSize(120.0f, 40.0f);
+		const float Margin = 8.0f;
+		const float Offset = 18.0f;
+		
+		FVector2D PromptPosition = MousePosition + FVector2D(Offset, Offset);
+		
+		if (PromptPosition.X + PromptSize.X + Margin > ViewportSize.X)
+		{
+			PromptPosition.X = MousePosition.X - PromptSize.X - Offset;
+		}
+		
+		if (PromptPosition.Y + PromptSize.Y + Margin > ViewportSize.Y)
+		{
+			PromptPosition.Y = MousePosition.Y - PromptSize.Y - Offset;
+		}
+		
+		PromptPosition.X = FMath::Clamp(PromptPosition.X, Margin, ViewportSize.X - PromptSize.X - Margin);
+		PromptPosition.Y = FMath::Clamp(PromptPosition.Y, Margin, ViewportSize.Y - PromptSize.Y - Margin);
+		
+		InteractionPromptWidget->SetPromptPosition(PromptPosition);
+	}
 
 	if (!bIsDestinationHeld || !GetWorld())
 	{
@@ -394,6 +440,20 @@ void ADWPlayerController::SetFocusedInteractActor(AActor* NewFocusedActor)
 	if (FocusedInteractActor)
 	{
 		IDWInteractable::Execute_OnInteractFocusBegin(FocusedInteractActor, ControlledPawn);
+		
+		if (InteractionPromptWidget)
+		{
+			const FText PromptText = IDWInteractable::Execute_GetInteractText(FocusedInteractActor);
+			InteractionPromptWidget->SetPromptText(PromptText);
+			InteractionPromptWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+	}
+	else
+	{
+		if (InteractionPromptWidget)
+		{
+			InteractionPromptWidget->SetVisibility(ESlateVisibility::Hidden);
+		}
 	}
 }
 

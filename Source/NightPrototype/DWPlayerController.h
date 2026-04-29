@@ -8,6 +8,7 @@
 
 class UInputAction;
 class UInputMappingContext;
+class UDWInteractionPromptWidget;
 
 /**
  * 
@@ -52,6 +53,12 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Feedback")
 	TSubclassOf<AActor> ClickIndicatorClass;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Interaction|UI")
+	TSubclassOf<UDWInteractionPromptWidget> InteractionPromptWidgetClass;
+	
+	UPROPERTY()
+	UDWInteractionPromptWidget* InteractionPromptWidget = nullptr;
 	
 	UPROPERTY()
 	AActor* FocusedInteractActor = nullptr;
