@@ -241,18 +241,6 @@ void ADWPlayerController::MoveDirectlyTowardCursor()
 	}
 
 	ControlledPawn->AddMovementInput(Direction.GetSafeNormal(), 1.0f, true);
-
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-			1001,
-			0.05f,
-			FColor::Green,
-			FString::Printf(TEXT("Action Hold Move | Dist: %.1f | Hit: %s"),
-				Direction.Size(),
-				*GetNameSafe(Hit.GetActor()))
-		);
-	}
 }
 
 void ADWPlayerController::IssueCommandUnderCursor(bool bAllowInteractCommand)
@@ -276,9 +264,9 @@ void ADWPlayerController::IssueCommandUnderCursor(bool bAllowInteractCommand)
 		{
 			PendingInteractActor = HitActor;
 
-			const FVector InteractLocation = IDWInteractable::Execute_GetInteractLocation(HitActor);
+			PendingInteractLocation = IDWInteractable::Execute_GetInteractLocation(HitActor);
 
-			MoveToLocation(InteractLocation);
+			MoveToLocation(PendingInteractLocation);
 			StartInteractCheckTimer();
 
 			return;
@@ -318,13 +306,23 @@ void ADWPlayerController::CheckPendingInteract()
 		return;
 	}
 
-	const FVector targetLocation = IDWInteractable::Execute_GetInteractLocation(PendingInteractActor);
+	const FVector targetLocation = PendingInteractLocation;
 	
 	float Distance = FVector::Dist2D(ControlledPawn->GetActorLocation(), targetLocation);
 
 	if (Distance <= InteractDistance)
 	{
 		StopMovement();
+		
+		if (ACharacter* ControlledCharacter = Cast<ACharacter>(ControlledPawn))
+		{
+			if (UCharacterMovementComponent* MoveComp = ControlledCharacter->GetCharacterMovement())
+			{
+				MoveComp->StopMovementImmediately();
+			}
+		}
+		
+		FaceActorsTowardEachOther(ControlledPawn, PendingInteractActor);
 
 		IDWInteractable::Execute_Interact(PendingInteractActor, ControlledPawn);
 
@@ -366,6 +364,7 @@ void ADWPlayerController::MoveToLocation(const FVector& Location)
 void ADWPlayerController::ClearPendingInteract()
 {
 	PendingInteractActor = nullptr;
+	PendingInteractLocation = FVector::ZeroVector;
 
 	GetWorldTimerManager().ClearTimer(InteractCheckTimerHandle);
 }
@@ -468,4 +467,33 @@ void ADWPlayerController::SpawnClickIndicator(const FVector& Location)
 	SpawnParams.Owner = this;
 	
 	GetWorld()->SpawnActor<AActor>(ClickIndicatorClass, Location, FRotator::ZeroRotator, SpawnParams);
+}
+
+void ADWPlayerController::FaceActorsTowardEachOther(AActor* FirstActor, AActor* SecondActor)
+{
+	if (!FirstActor || !SecondActor)
+	{
+		return;
+	}
+	
+	const FVector FirstLocation = FirstActor->GetActorLocation();
+	const FVector SecondLocation = SecondActor->GetActorLocation();
+	
+	FVector FirstToSecond = SecondLocation - FirstLocation;
+	FirstToSecond.Z = 0.0f;
+	
+	FVector SecondToFirst = FirstLocation - SecondLocation;
+	SecondToFirst.Z = 0.0f;
+	
+	if (!FirstToSecond.IsNearlyZero())
+	{
+		const FRotator FirstRotation(0.0f, FirstToSecond.Rotation().Yaw, 0.0f);
+		FirstActor->SetActorRotation(FirstRotation);
+	}
+	
+	if (!SecondToFirst.IsNearlyZero())
+	{
+		const FRotator SecondRotation(0.0f, SecondToFirst.Rotation().Yaw, 0.0f);
+		SecondActor->SetActorRotation(SecondRotation);
+	}
 }

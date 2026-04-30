@@ -65,6 +65,8 @@ protected:
 
 	UPROPERTY()
 	AActor* PendingInteractActor = nullptr;
+	
+	FVector PendingInteractLocation = FVector::ZeroVector;
 
 	FTimerHandle InteractCheckTimerHandle;
 
@@ -86,6 +88,8 @@ protected:
 
 	void MoveToLocation(const FVector& Location);
 	void ClearPendingInteract();
+	
+	void FaceActorsTowardEachOther(AActor* FirstActor, AActor* SecondActor);
 
 	void SetCharacterMoveSpeed(float NewSpeed);
 	
