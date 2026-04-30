@@ -9,6 +9,7 @@
 class UInputAction;
 class UInputMappingContext;
 class UDWInteractionPromptWidget;
+class UDWDialogueWidget;
 
 /**
  * 
@@ -57,6 +58,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Interaction|UI")
 	TSubclassOf<UDWInteractionPromptWidget> InteractionPromptWidgetClass;
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Dialogue|UI")
+	TSubclassOf<UDWDialogueWidget> DialogueWidgetClass;
+	
 	UPROPERTY()
 	UDWInteractionPromptWidget* InteractionPromptWidget = nullptr;
 	
@@ -65,6 +69,9 @@ protected:
 
 	UPROPERTY()
 	AActor* PendingInteractActor = nullptr;
+	
+	UPROPERTY()
+	UDWDialogueWidget* DialogueWidget = nullptr;
 	
 	FVector PendingInteractLocation = FVector::ZeroVector;
 
@@ -90,7 +97,9 @@ protected:
 	void ClearPendingInteract();
 	
 	void FaceActorsTowardEachOther(AActor* FirstActor, AActor* SecondActor);
-
+	void ShowDialogue(const FText& DialogueText);
+	void HideDialogue();
+	
 	void SetCharacterMoveSpeed(float NewSpeed);
 	
 	void UpdateInteractionFocus();

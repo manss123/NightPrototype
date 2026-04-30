@@ -19,6 +19,7 @@
 #include "Blueprint/UserWidget.h"
 #include "DWInteractionPromptWidget.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
+#include  "DWDialogueWidget.h"
 
 ADWPlayerController::ADWPlayerController()
 {
@@ -59,6 +60,17 @@ void ADWPlayerController::BeginPlay()
 		{
 			InteractionPromptWidget->AddToViewport();
 			InteractionPromptWidget->SetVisibility(ESlateVisibility::Hidden);
+		}
+	}
+	
+	if (DialogueWidgetClass)
+	{
+		DialogueWidget = CreateWidget<UDWDialogueWidget>(this, DialogueWidgetClass);
+		
+		if (DialogueWidget)
+		{
+			DialogueWidget->AddToViewport();
+			DialogueWidget->SetVisibility(ESlateVisibility::Hidden);
 		}
 	}
 }
@@ -136,6 +148,8 @@ void ADWPlayerController::Tick(float DeltaSeconds)
 
 void ADWPlayerController::HandleDestinationStarted()
 {
+	HideDialogue();
+	
 	bIsDestinationHeld = true;
 	bIsActionHoldMode = false;
 
@@ -325,6 +339,13 @@ void ADWPlayerController::CheckPendingInteract()
 		FaceActorsTowardEachOther(ControlledPawn, PendingInteractActor);
 
 		IDWInteractable::Execute_Interact(PendingInteractActor, ControlledPawn);
+		
+		const FText DialogueText = IDWInteractable::Execute_GetDialogueText(PendingInteractActor);
+		
+		if (!DialogueText.IsEmpty())
+		{
+			ShowDialogue(DialogueText);
+		}
 
 		ClearPendingInteract();
 	}
@@ -496,4 +517,25 @@ void ADWPlayerController::FaceActorsTowardEachOther(AActor* FirstActor, AActor* 
 		const FRotator SecondRotation(0.0f, SecondToFirst.Rotation().Yaw, 0.0f);
 		SecondActor->SetActorRotation(SecondRotation);
 	}
+}
+
+void ADWPlayerController::ShowDialogue(const FText& DialogueText)
+{
+	if (!DialogueWidget)
+	{
+		return;
+	}
+	
+	DialogueWidget->SetDialogueText(DialogueText);
+	DialogueWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+}
+
+void ADWPlayerController::HideDialogue()
+{
+	if (!DialogueWidget)
+	{
+		return;
+	}
+	
+	DialogueWidget->SetVisibility(ESlateVisibility::Hidden);
 }

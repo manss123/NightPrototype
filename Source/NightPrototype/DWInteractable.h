@@ -31,6 +31,9 @@ public:
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
     FText GetInteractText();
 	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
+	FText GetDialogueText();
+	
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction|Feedback")
 	void OnInteractFocusBegin(AActor* Interactor);
 	
@@ -41,6 +44,7 @@ public:
 	bool CanInteract(AActor* Interactor);
 	
 	virtual bool CanInteract_Implementation(AActor* Interactor);
+	virtual  FText GetDialogueText_Implementation();
 	virtual void OnInteractFocusBegin_Implementation(AActor* Interactor);
 	virtual void OnInteractFocusEnd_Implementation(AActor* Interactor);
 };

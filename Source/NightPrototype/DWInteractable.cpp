@@ -17,3 +17,8 @@ void IDWInteractable::OnInteractFocusEnd_Implementation(AActor* Interactor)
 {
 	
 }
+
+FText IDWInteractable::GetDialogueText_Implementation()
+{
+	return FText::GetEmpty();
+}
