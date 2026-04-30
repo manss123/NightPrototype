@@ -33,18 +33,31 @@ public:
 	
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
 	FText GetDialogueText();
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
+	float GetInteractDistance();
 	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
+	bool ShouldFaceInteractor();
+	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
+	bool ShouldShowDialogue();
+
+
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction|Feedback")
 	void OnInteractFocusBegin(AActor* Interactor);
-	
+
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction|Feedback")
 	void OnInteractFocusEnd(AActor* Interactor);
-	
+
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction|Feedback")
 	bool CanInteract(AActor* Interactor);
-	
+
 	virtual bool CanInteract_Implementation(AActor* Interactor);
 	virtual  FText GetDialogueText_Implementation();
 	virtual void OnInteractFocusBegin_Implementation(AActor* Interactor);
 	virtual void OnInteractFocusEnd_Implementation(AActor* Interactor);
+	virtual float GetInteractDistance_Implementation();
+	virtual bool ShouldFaceInteractor_Implementation();
+	virtual bool ShouldShowDialogue_Implementation();
 };

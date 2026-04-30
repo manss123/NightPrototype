@@ -323,8 +323,11 @@ void ADWPlayerController::CheckPendingInteract()
 	const FVector targetLocation = PendingInteractLocation;
 	
 	float Distance = FVector::Dist2D(ControlledPawn->GetActorLocation(), targetLocation);
+	
+	const float ActorInteractDistance = IDWInteractable::Execute_GetInteractDistance(PendingInteractActor);
+	const float EffectiveInteractDistance = ActorInteractDistance > 0.0f ? ActorInteractDistance : InteractDistance;
 
-	if (Distance <= InteractDistance)
+	if (Distance <= EffectiveInteractDistance)
 	{
 		StopMovement();
 		
@@ -335,16 +338,22 @@ void ADWPlayerController::CheckPendingInteract()
 				MoveComp->StopMovementImmediately();
 			}
 		}
-		
-		FaceActorsTowardEachOther(ControlledPawn, PendingInteractActor);
+
+		if (IDWInteractable::Execute_ShouldFaceInteractor(PendingInteractActor))
+		{
+			FaceActorsTowardEachOther(ControlledPawn, PendingInteractActor);
+		}
 
 		IDWInteractable::Execute_Interact(PendingInteractActor, ControlledPawn);
-		
-		const FText DialogueText = IDWInteractable::Execute_GetDialogueText(PendingInteractActor);
-		
-		if (!DialogueText.IsEmpty())
+
+		if (IDWInteractable::Execute_ShouldShowDialogue(PendingInteractActor))
 		{
-			ShowDialogue(DialogueText);
+			const FText DialogueText = IDWInteractable::Execute_GetDialogueText(PendingInteractActor);
+		
+			if (!DialogueText.IsEmpty())
+			{
+				ShowDialogue(DialogueText);
+			}
 		}
 
 		ClearPendingInteract();

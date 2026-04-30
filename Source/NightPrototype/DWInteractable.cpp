@@ -22,3 +22,18 @@ FText IDWInteractable::GetDialogueText_Implementation()
 {
 	return FText::GetEmpty();
 }
+
+float IDWInteractable::GetInteractDistance_Implementation()
+{
+	return 0.0f;
+}
+
+bool IDWInteractable::ShouldFaceInteractor_Implementation()
+{
+	return false;
+}
+
+bool IDWInteractable::ShouldShowDialogue_Implementation()
+{
+	return false;
+}
