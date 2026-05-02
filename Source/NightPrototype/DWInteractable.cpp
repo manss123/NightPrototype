@@ -37,3 +37,20 @@ bool IDWInteractable::ShouldShowDialogue_Implementation()
 {
 	return false;
 }
+
+TArray<FDWInteractionOption> IDWInteractable::GetInteractionOptions_Implementation()
+{
+	TArray<FDWInteractionOption> Options;
+	
+	FDWInteractionOption PrimaryOption;
+	PrimaryOption.Action = EDWInteractionAction::Primary;
+	PrimaryOption.Label = FText::FromString(TEXT("Interact"));
+	
+	Options.Add(PrimaryOption);
+	return Options;
+}
+
+void IDWInteractable::InteractWithOption_Implementation(AActor* Interactor, EDWInteractionAction Option)
+{
+	Interact_Implementation(Interactor);
+}

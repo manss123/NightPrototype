@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
+#include "DWInteractionTypes.h"
 #include "DWInteractable.generated.h"
 
 // This class does not need to be modified.
@@ -22,8 +23,14 @@ class NIGHTPROTOTYPE_API IDWInteractable
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
+	TArray<FDWInteractionOption> GetInteractionOptions();
+	
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
     void Interact(AActor* Interactor);
+	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
+	void InteractWithOption(AActor* Interactor, EDWInteractionAction Action);
 
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
     FVector GetInteractLocation();
@@ -60,4 +67,6 @@ public:
 	virtual float GetInteractDistance_Implementation();
 	virtual bool ShouldFaceInteractor_Implementation();
 	virtual bool ShouldShowDialogue_Implementation();
+	virtual TArray<FDWInteractionOption> GetInteractionOptions_Implementation();
+	virtual void InteractWithOption_Implementation(AActor* Interactor, EDWInteractionAction Option);
 };

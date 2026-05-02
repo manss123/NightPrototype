@@ -19,7 +19,8 @@
 #include "Blueprint/UserWidget.h"
 #include "DWInteractionPromptWidget.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
-#include  "DWDialogueWidget.h"
+#include "DWDialogueWidget.h"
+#include "DWInteractionOptionsMenuWidget.h"
 
 ADWPlayerController::ADWPlayerController()
 {
@@ -63,6 +64,19 @@ void ADWPlayerController::BeginPlay()
 		}
 	}
 	
+	if (InteractionOptionsMenuWidgetClass)
+	{
+		InteractionOptionsMenuWidget = CreateWidget<UDWInteractionOptionsMenuWidget>(this, InteractionOptionsMenuWidgetClass);
+		
+		if (InteractionOptionsMenuWidget)
+		{
+			InteractionOptionsMenuWidget->AddToViewport();
+			InteractionOptionsMenuWidget->SetVisibility(ESlateVisibility::Hidden);
+			
+			InteractionOptionsMenuWidget->OnOptionSelectedNative.AddDynamic(this, &ADWPlayerController::HandleInteractionOptionSelected);
+		}
+	}
+	
 	if (DialogueWidgetClass)
 	{
 		DialogueWidget = CreateWidget<UDWDialogueWidget>(this, DialogueWidgetClass);
@@ -96,7 +110,7 @@ void ADWPlayerController::Tick(float DeltaSeconds)
 	
 	UpdateInteractionFocus();
 	
-	if (FocusedInteractActor && InteractionPromptWidget)
+	if (FocusedInteractActor && InteractionPromptWidget && !bIsInteractionOptionsMenuOpen)
 	{
 		const FVector2D MousePosition =  UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
 		
@@ -149,6 +163,13 @@ void ADWPlayerController::Tick(float DeltaSeconds)
 void ADWPlayerController::HandleDestinationStarted()
 {
 	HideDialogue();
+	
+	if (bIsInteractionOptionsMenuOpen)
+	{
+		HideInteractionOptionsMenu();
+		ClearPendingInteract();
+		return;
+	}
 	
 	bIsDestinationHeld = true;
 	bIsActionHoldMode = false;
@@ -276,12 +297,37 @@ void ADWPlayerController::IssueCommandUnderCursor(bool bAllowInteractCommand)
 	{
 		if (bAllowInteractCommand || PendingInteractActor == HitActor)
 		{
+			const TArray<FDWInteractionOption> Options = IDWInteractable::Execute_GetInteractionOptions(HitActor);
+
+			if (Options.Num() > 1)
+			{
+				ClearPendingInteract();
+				StopMovement();
+				
+				if (ACharacter* ControlledCharacter = Cast<ACharacter>(GetPawn()))
+				{
+					if (UCharacterMovementComponent* MoveComp = ControlledCharacter->GetCharacterMovement())
+					{
+						MoveComp->StopMovementImmediately();
+					}
+				}
+				ShowInteractionOptionsMenu(HitActor, Options);
+				return;
+			}
+
 			PendingInteractActor = HitActor;
-
 			PendingInteractLocation = IDWInteractable::Execute_GetInteractLocation(HitActor);
+			PendingInteractionAction = Options.Num() > 0 ? Options[0].Action : EDWInteractionAction::Primary;
+			PendingInteractStartTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
 
-			MoveToLocation(PendingInteractLocation);
-			StartInteractCheckTimer();
+			if (MoveToLocation(PendingInteractLocation))
+			{
+				StartInteractCheckTimer();
+			}
+			else
+			{
+				ClearPendingInteract();
+			}
 
 			return;
 		}
@@ -315,6 +361,21 @@ void ADWPlayerController::CheckPendingInteract()
 		return;
 	}
 	
+	if (GetWorld() && PendingInteractTimeout > 0.0f)
+	{
+		const float ElapsedTime = GetWorld()->GetTimeSeconds() - PendingInteractStartTime;
+		
+		if (ElapsedTime > PendingInteractTimeout)
+		{
+			if (GEngine)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Orange, TEXT("Pending interact timed out"));
+			}
+			ClearPendingInteract();
+			return;
+		}
+	}
+	
 	if (bIsDestinationHeld && !bIsActionHoldMode)
 	{
 		return;
@@ -322,7 +383,25 @@ void ADWPlayerController::CheckPendingInteract()
 
 	const FVector targetLocation = PendingInteractLocation;
 	
-	float Distance = FVector::Dist2D(ControlledPawn->GetActorLocation(), targetLocation);
+	const FVector PawnLocation = ControlledPawn->GetActorLocation();
+	float PawnFloorZ = PawnLocation.Z;
+	
+	if (const ACharacter* ControlledCharacter = Cast<ACharacter>(ControlledPawn))
+	{
+		PawnFloorZ -= ControlledCharacter->GetSimpleCollisionHalfHeight();
+	}
+	
+	float Distance = FVector::Dist2D(PawnLocation, targetLocation);
+	const float HeightDifference = FMath::Abs(PawnFloorZ - targetLocation.Z);
+	
+	if (HeightDifference > MaxInteractHeightDifference)
+	{
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Orange, TEXT("Too height"));
+		}
+		return;
+	}
 	
 	const float ActorInteractDistance = IDWInteractable::Execute_GetInteractDistance(PendingInteractActor);
 	const float EffectiveInteractDistance = ActorInteractDistance > 0.0f ? ActorInteractDistance : InteractDistance;
@@ -343,8 +422,8 @@ void ADWPlayerController::CheckPendingInteract()
 		{
 			FaceActorsTowardEachOther(ControlledPawn, PendingInteractActor);
 		}
-
-		IDWInteractable::Execute_Interact(PendingInteractActor, ControlledPawn);
+		
+		IDWInteractable::Execute_InteractWithOption(PendingInteractActor, ControlledPawn, PendingInteractionAction);
 
 		if (IDWInteractable::Execute_ShouldShowDialogue(PendingInteractActor))
 		{
@@ -360,11 +439,11 @@ void ADWPlayerController::CheckPendingInteract()
 	}
 }
 
-void ADWPlayerController::MoveToLocation(const FVector& Location)
+bool ADWPlayerController::MoveToLocation(const FVector& Location)
 {
 	if (!GetWorld())
 	{
-		return;
+		return false;
 	}
 
 	UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(GetWorld());
@@ -372,7 +451,7 @@ void ADWPlayerController::MoveToLocation(const FVector& Location)
 	if (!NavSys)
 	{
 		UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, Location);
-		return;
+		return true;
 	}
 
 	FNavLocation ProjectedLocation;
@@ -385,16 +464,19 @@ void ADWPlayerController::MoveToLocation(const FVector& Location)
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("Move failed: target location is not on NavMesh"));
 		}
-		return;
+		return false;
 	}
 
 	UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, ProjectedLocation.Location);
+	return true;
 }
 
 void ADWPlayerController::ClearPendingInteract()
 {
 	PendingInteractActor = nullptr;
+	PendingInteractionAction = EDWInteractionAction::Primary;
 	PendingInteractLocation = FVector::ZeroVector;
+	PendingInteractStartTime = 0.0f;
 
 	GetWorldTimerManager().ClearTimer(InteractCheckTimerHandle);
 }
@@ -472,7 +554,21 @@ void ADWPlayerController::SetFocusedInteractActor(AActor* NewFocusedActor)
 		
 		if (InteractionPromptWidget)
 		{
-			const FText PromptText = IDWInteractable::Execute_GetInteractText(FocusedInteractActor);
+			if (bIsInteractionOptionsMenuOpen)
+			{
+				InteractionPromptWidget->SetVisibility(ESlateVisibility::Hidden);
+				return;
+			}
+			
+			FText PromptText = IDWInteractable::Execute_GetInteractText(FocusedInteractActor);
+			
+			const TArray<FDWInteractionOption> Options = IDWInteractable::Execute_GetInteractionOptions(FocusedInteractActor);
+			
+			if (Options.Num() > 0 && !Options[0].Label.IsEmpty())
+			{
+				PromptText = Options[0].Label;
+			}
+			
 			InteractionPromptWidget->SetPromptText(PromptText);
 			InteractionPromptWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
 		}
@@ -547,4 +643,102 @@ void ADWPlayerController::HideDialogue()
 	}
 	
 	DialogueWidget->SetVisibility(ESlateVisibility::Hidden);
+}
+
+void ADWPlayerController::ShowInteractionOptionsMenu(AActor* InteractableActor, const TArray<FDWInteractionOption>& Options)
+{
+	if (!InteractionOptionsMenuWidget)
+	{
+		return;
+	}
+	
+	InteractionOptionsMenuActor = InteractableActor;
+	
+	bIsInteractionOptionsMenuOpen = true;
+	
+	if (InteractionPromptWidget)
+	{
+		InteractionPromptWidget->SetVisibility(ESlateVisibility::Hidden);
+	}
+	
+	const FVector2D MousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
+	const FVector2D MenuSize(160.0f, Options.Num() * 42.0f + 16.0f);
+	const FVector2D MenuPosition = GetClampedMenuPosition(MousePosition, MenuSize);
+	
+	InteractionOptionsMenuWidget->SetOptions(Options);
+	InteractionOptionsMenuWidget->SetMenuPosition(MenuPosition);
+	InteractionOptionsMenuWidget->SetVisibility(ESlateVisibility::Visible);
+}
+
+void ADWPlayerController::HideInteractionOptionsMenu()
+{
+	bIsInteractionOptionsMenuOpen = false;
+	InteractionOptionsMenuActor = nullptr;
+	ClearPendingInteract();
+	
+	if (!InteractionOptionsMenuWidget)
+	{
+		return;
+	}
+
+	InteractionOptionsMenuWidget->SetVisibility(ESlateVisibility::Hidden);
+}
+
+void ADWPlayerController::HandleInteractionOptionSelected(FDWInteractionOption Option)
+{
+	AActor* SelectedActor = InteractionOptionsMenuActor;
+	
+	HideInteractionOptionsMenu();
+	
+	bIsDestinationHeld = false;
+	bIsActionHoldMode = false;
+	
+	if (!IsUsableInteractable(SelectedActor))
+	{
+		return;
+	}
+	
+	PendingInteractActor = SelectedActor;
+	PendingInteractLocation = IDWInteractable::Execute_GetInteractLocation(SelectedActor);
+	PendingInteractionAction = Option.Action;
+	PendingInteractStartTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+
+	if (MoveToLocation(PendingInteractLocation))
+	{
+		StartInteractCheckTimer();
+	}
+	else
+	{
+		ClearPendingInteract();
+	}
+}
+
+FVector2D ADWPlayerController::GetClampedMenuPosition(const FVector2D& AnchorPosition, const FVector2D& MenuSize) const
+{
+	FVector2D ViewPortSize(0.0f, 0.0f);
+	
+	if (GEngine && GEngine->GameViewport)
+	{
+		GEngine->GameViewport->GetViewportSize(ViewPortSize);
+	}
+	
+	const float Margin = 8.0f;
+	const float Offset = 12.0f;
+	
+	FVector2D MenuPosition = AnchorPosition + FVector2D(Offset, Offset);
+	
+	if (MenuPosition.X + MenuSize.X + Margin > ViewPortSize.X)
+	{
+		MenuPosition.X = AnchorPosition.X - MenuSize.X - Offset;
+	}
+	
+	if (MenuPosition.Y + MenuSize.Y + Margin > ViewPortSize.Y)
+	{
+		MenuPosition.Y = AnchorPosition.Y - MenuSize.Y - Offset;
+	}
+	
+	MenuPosition.X = FMath::Clamp(MenuPosition.X, Margin, ViewPortSize.X - MenuSize.X - Margin);
+	MenuPosition.Y = FMath::Clamp(MenuPosition.Y, Margin, ViewPortSize.Y - MenuSize.Y - Margin);
+	
+	return MenuPosition;
 }

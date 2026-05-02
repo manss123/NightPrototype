@@ -4,12 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "DWInteractionTypes.h"
 #include "DWPlayerController.generated.h"
 
 class UInputAction;
 class UInputMappingContext;
 class UDWInteractionPromptWidget;
 class UDWDialogueWidget;
+class UDWInteractionOptionsMenuWidget;
 
 /**
  * 
@@ -39,6 +41,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
 	float InteractDistance = 180.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
+	float MaxInteractHeightDifference = 50.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
+	float PendingInteractTimeout = 5.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float HoldToActionThreshold = 0.18f;
@@ -58,6 +66,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Interaction|UI")
 	TSubclassOf<UDWInteractionPromptWidget> InteractionPromptWidgetClass;
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Interaction|UI")
+	TSubclassOf<UDWInteractionOptionsMenuWidget> InteractionOptionsMenuWidgetClass;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Dialogue|UI")
 	TSubclassOf<UDWDialogueWidget> DialogueWidgetClass;
 	
@@ -69,11 +80,19 @@ protected:
 
 	UPROPERTY()
 	AActor* PendingInteractActor = nullptr;
+
+	UPROPERTY()
+	AActor* InteractionOptionsMenuActor = nullptr;
 	
 	UPROPERTY()
 	UDWDialogueWidget* DialogueWidget = nullptr;
+
+	UPROPERTY()
+	UDWInteractionOptionsMenuWidget* InteractionOptionsMenuWidget = nullptr;
 	
 	FVector PendingInteractLocation = FVector::ZeroVector;
+	
+	EDWInteractionAction PendingInteractionAction = EDWInteractionAction::Primary;
 
 	FTimerHandle InteractCheckTimerHandle;
 
@@ -93,13 +112,25 @@ protected:
 	void CheckPendingInteract();
 	void StartInteractCheckTimer();
 
-	void MoveToLocation(const FVector& Location);
+	bool MoveToLocation(const FVector& Location);
 	void ClearPendingInteract();
 	
+	float PendingInteractStartTime = 0.0f;
+	
 	void FaceActorsTowardEachOther(AActor* FirstActor, AActor* SecondActor);
+	
 	void ShowDialogue(const FText& DialogueText);
 	void HideDialogue();
+
+	bool bIsInteractionOptionsMenuOpen = false;
 	
+	void ShowInteractionOptionsMenu(AActor* InteractableActor, const TArray<FDWInteractionOption>& Options);
+	void HideInteractionOptionsMenu();
+
+	UFUNCTION()
+	void HandleInteractionOptionSelected(FDWInteractionOption Option);
+
+
 	void SetCharacterMoveSpeed(float NewSpeed);
 	
 	void UpdateInteractionFocus();
@@ -107,4 +138,7 @@ protected:
 	void SpawnClickIndicator(const FVector& Location);
 	bool TraceCursor(FHitResult& OutHit);
 	bool IsUsableInteractable(AActor* Actor);
+	
+	FVector2D GetClampedMenuPosition(const FVector2D& AnchorPosition, const FVector2D& MenuSize) const
+	;
 };
