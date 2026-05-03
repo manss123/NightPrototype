@@ -21,6 +21,7 @@
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "DWDialogueWidget.h"
 #include "DWInteractionOptionsMenuWidget.h"
+#include "DWInteractableActor.h"
 
 ADWPlayerController::ADWPlayerController()
 {
@@ -316,7 +317,8 @@ void ADWPlayerController::IssueCommandUnderCursor(bool bAllowInteractCommand)
 			}
 
 			PendingInteractActor = HitActor;
-			PendingInteractLocation = IDWInteractable::Execute_GetInteractLocation(HitActor);
+			PendingInteractLocation = GetBestInteractLocation(HitActor);
+			
 			PendingInteractionAction = Options.Num() > 0 ? Options[0].Action : EDWInteractionAction::Primary;
 			PendingInteractStartTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
 
@@ -398,10 +400,6 @@ void ADWPlayerController::CheckPendingInteract()
 	
 	if (HeightDifference > MaxInteractHeightDifference)
 	{
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Orange, TEXT("Too height"));
-		}
 		return;
 	}
 	
@@ -517,6 +515,16 @@ bool ADWPlayerController::IsUsableInteractable(AActor* Actor)
 	
 	APawn* ControlledPawn = GetPawn();
 	return IDWInteractable::Execute_CanInteract(Actor, ControlledPawn);
+}
+
+FVector ADWPlayerController::GetBestInteractLocation(AActor* InteractableActor) const
+{
+	if (ADWInteractableActor* BaseInteractableActor = Cast<ADWInteractableActor>(InteractableActor))
+	{
+		return BaseInteractableActor->GetInteractLocationForInteractor(GetPawn());
+	}
+	
+	return IDWInteractable::Execute_GetInteractLocation(InteractableActor);
 }
 
 void ADWPlayerController::UpdateInteractionFocus()
@@ -701,7 +709,8 @@ void ADWPlayerController::HandleInteractionOptionSelected(FDWInteractionOption O
 	}
 	
 	PendingInteractActor = SelectedActor;
-	PendingInteractLocation = IDWInteractable::Execute_GetInteractLocation(SelectedActor);
+	PendingInteractLocation = GetBestInteractLocation(SelectedActor);
+
 	PendingInteractionAction = Option.Action;
 	PendingInteractStartTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
 

@@ -139,6 +139,7 @@ protected:
 	bool TraceCursor(FHitResult& OutHit);
 	bool IsUsableInteractable(AActor* Actor);
 	
-	FVector2D GetClampedMenuPosition(const FVector2D& AnchorPosition, const FVector2D& MenuSize) const
-	;
+	FVector GetBestInteractLocation(AActor* InteractableActor) const;
+	
+	FVector2D GetClampedMenuPosition(const FVector2D& AnchorPosition, const FVector2D& MenuSize) const;
 };

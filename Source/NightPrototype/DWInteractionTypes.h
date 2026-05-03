@@ -13,7 +13,8 @@ enum  class EDWInteractionAction : uint8
 	Open UMETA(DisplayName = "Open"),
 	Inspect UMETA(DisplayName = "Inspect"),
 	PickUp UMETA(DisplayName = "Pick Up"),
-	Attack UMETA(DisplayName = "Attack")
+	Attack UMETA(DisplayName = "Attack"),
+	Rest UMETA(DisplayName = "Rest")
 };
 
 USTRUCT(BlueprintType)
