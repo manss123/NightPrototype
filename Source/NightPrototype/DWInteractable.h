@@ -69,4 +69,6 @@ public:
 	virtual bool ShouldShowDialogue_Implementation();
 	virtual TArray<FDWInteractionOption> GetInteractionOptions_Implementation();
 	virtual void InteractWithOption_Implementation(AActor* Interactor, EDWInteractionAction Option);
+	
+	static FVector GetActorFloorLocation(AActor* Actor);
 };

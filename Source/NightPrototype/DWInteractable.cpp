@@ -2,6 +2,7 @@
 
 
 #include "DWInteractable.h"
+#include "GameFramework/Character.h"
 
 bool IDWInteractable::CanInteract_Implementation(AActor* Interactor)
 {
@@ -53,4 +54,21 @@ TArray<FDWInteractionOption> IDWInteractable::GetInteractionOptions_Implementati
 void IDWInteractable::InteractWithOption_Implementation(AActor* Interactor, EDWInteractionAction Option)
 {
 	Interact_Implementation(Interactor);
+}
+
+FVector IDWInteractable::GetActorFloorLocation(AActor* Actor)
+{
+	if (!Actor)
+	{
+		return FVector::ZeroVector;
+	}
+	
+	FVector FloorLocation = Actor->GetActorLocation();
+	
+	if (const ACharacter* Character = Cast<ACharacter>(Actor))
+	{
+		FloorLocation.Z -= Character->GetSimpleCollisionHalfHeight();
+	}
+	
+	return FloorLocation;
 }

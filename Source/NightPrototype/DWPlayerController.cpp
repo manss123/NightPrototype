@@ -383,16 +383,18 @@ void ADWPlayerController::CheckPendingInteract()
 
 	const FVector targetLocation = PendingInteractLocation;
 	
-	const FVector PawnLocation = ControlledPawn->GetActorLocation();
-	float PawnFloorZ = PawnLocation.Z;
+	const FVector PawnFloorLocation = IDWInteractable::GetActorFloorLocation(ControlledPawn);
 	
-	if (const ACharacter* ControlledCharacter = Cast<ACharacter>(ControlledPawn))
+	float Distance = FVector::Dist2D(PawnFloorLocation, targetLocation);
+	
+	float TargetFloorZ = targetLocation.Z;
+	
+	if (Cast<ACharacter>(PendingInteractActor))
 	{
-		PawnFloorZ -= ControlledCharacter->GetSimpleCollisionHalfHeight();
+		TargetFloorZ = IDWInteractable::GetActorFloorLocation(PendingInteractActor).Z;
 	}
 	
-	float Distance = FVector::Dist2D(PawnLocation, targetLocation);
-	const float HeightDifference = FMath::Abs(PawnFloorZ - targetLocation.Z);
+	const float HeightDifference = FMath::Abs(PawnFloorLocation.Z - TargetFloorZ);
 	
 	if (HeightDifference > MaxInteractHeightDifference)
 	{
