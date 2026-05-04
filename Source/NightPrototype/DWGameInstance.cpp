@@ -7,6 +7,8 @@
 const FName UDWGameInstance::Event_PlayerInspectedCorpse(TEXT("PlayerInspectedCorpse"));
 const FName UDWGameInstance::Event_PlayerReadNoticeBoard(TEXT("PlayerReadNoticeBoard"));
 
+const FName UDWGameInstance::Event_FirstNightStarted(TEXT("NightStarted"));
+
 void UDWGameInstance::AddWorldEvent(FName EventTag)
 {
 	if (EventTag.IsNone())

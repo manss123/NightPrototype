@@ -22,6 +22,8 @@ public:
 	static const FName Event_PlayerInspectedCorpse;
 	static const FName Event_PlayerReadNoticeBoard;
 	
+	static const FName Event_FirstNightStarted;
+	
 	UFUNCTION(BlueprintCallable, Category = "World Memory")
 	void AddWorldEvent(FName EventTag);
 	
