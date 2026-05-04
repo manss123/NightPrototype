@@ -23,6 +23,7 @@ public:
 	static const FName Event_PlayerReadNoticeBoard;
 	
 	static const FName Event_FirstNightStarted;
+	static const FName Event_PlayerSawVampire;
 	
 	UFUNCTION(BlueprintCallable, Category = "World Memory")
 	void AddWorldEvent(FName EventTag);
@@ -41,6 +42,15 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "World Memory|Events")
 	void MarkPlayerReadNoticeBoard();
+	
+	UFUNCTION(BlueprintCallable, Category = "World Memory|Events")
+	void MarkPlayerSawVampire();
+	
+	UFUNCTION(BlueprintPure, Category = "World Memory|Events")
+	bool HasPlayerSawVampire() const;
+	
+	UFUNCTION(BlueprintPure, Category = "World Memory|Events")
+	bool HasFirstNightStarted() const;
 	
 	UFUNCTION(BlueprintPure, Category = "World Memory|Events")
 	bool HasPlayerReadNoticeBoard() const;

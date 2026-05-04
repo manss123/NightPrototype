@@ -80,6 +80,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Day Night|Lighting")
 	float NightSkyIntensity = 0.15f;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "First Night")
+	TArray<AActor*> FirstNightActorsToReveal;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "First Night")
+	bool bHasTriggeredFirstNight = false;
+	
 	UFUNCTION(BlueprintPure, Category = "Day Night")
 	FText GetTimeText() const;
 	

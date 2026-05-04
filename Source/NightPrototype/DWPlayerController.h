@@ -38,6 +38,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* SetDestinationAction;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* ToggleRunAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction")
 	float InteractDistance = 180.0f;
@@ -56,6 +59,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float RunSpeed = 650.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	bool bIsRunMode = false;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interaction|Feedback")
 	float CursorTraceDistance = 100000.0f;
@@ -105,9 +111,11 @@ protected:
 
 	void IssueCommandUnderCursor(bool bAllowInteractCommand);
 	void MoveDirectlyTowardCursor();
-
+	
 	void EnterActionHoldMode();
 	void ExitActionHoldMode();
+	
+	void ToggleRunMode();
 
 	void CheckPendingInteract();
 	void StartInteractCheckTimer();

@@ -118,13 +118,32 @@ void ADWDayNightManager::HandleNightStarted()
 		GEngine->AddOnScreenDebugMessage(-1, 4.0f, FColor::Purple, TEXT("Night has started"));
 	}
 
-	if (IsFirstNight())
+	if (IsFirstNight() && !bHasTriggeredFirstNight)
 	{
+		bHasTriggeredFirstNight = true;
 		if (UDWGameInstance* DWGameInstance = GetGameInstance<UDWGameInstance>())
 		{
 			DWGameInstance->AddWorldEvent(UDWGameInstance::Event_FirstNightStarted);
 			DWGameInstance->PrintWorldEvents();
-		}	
+		}
+		
+		for (AActor* ActorToReveal : FirstNightActorsToReveal)
+		{
+			if (!ActorToReveal)
+			{
+				continue;
+			}
+			
+			ActorToReveal->SetActorHiddenInGame(false);
+			ActorToReveal->SetActorEnableCollision(true);
+			ActorToReveal->SetActorTickEnabled(true);
+		}
+		
+		if (bShowDebugMessage && GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1, 5.0f, FColor::Red, TEXT("Something has appeared outside the village"));
+		}
 	}
 
 	OnNightStarted.Broadcast();

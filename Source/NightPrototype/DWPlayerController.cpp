@@ -52,7 +52,7 @@ void ADWPlayerController::BeginPlay()
 		}
 	}
 
-	SetCharacterMoveSpeed(WalkSpeed);
+	SetCharacterMoveSpeed(bIsRunMode ? RunSpeed : WalkSpeed);
 	
 	if (InteractionPromptWidgetClass)
 	{
@@ -101,6 +101,11 @@ void ADWPlayerController::SetupInputComponent()
 			EnhancedInput->BindAction(SetDestinationAction, ETriggerEvent::Started, this, &ADWPlayerController::HandleDestinationStarted);
 			EnhancedInput->BindAction(SetDestinationAction, ETriggerEvent::Completed, this, &ADWPlayerController::HandleDestinationCompleted);
 			EnhancedInput->BindAction(SetDestinationAction, ETriggerEvent::Canceled, this, &ADWPlayerController::HandleDestinationCompleted);
+		}
+		
+		if (ToggleRunAction)
+		{
+			EnhancedInput->BindAction(ToggleRunAction, ETriggerEvent::Started, this, &ADWPlayerController::ToggleRunMode);
 		}
 	}
 }
@@ -223,7 +228,7 @@ void ADWPlayerController::ExitActionHoldMode()
 		if (UCharacterMovementComponent* MoveComp = ControlledCharacter->GetCharacterMovement())
 		{
 			MoveComp->SetMovementMode(MOVE_Walking);
-			MoveComp->MaxWalkSpeed = WalkSpeed;
+			MoveComp->MaxWalkSpeed = bIsRunMode ? RunSpeed : WalkSpeed;
 		}
 	}
 }
@@ -498,6 +503,23 @@ void ADWPlayerController::SetCharacterMoveSpeed(float NewSpeed)
 	}
 
 	MoveComp->MaxWalkSpeed = NewSpeed;
+}
+
+void ADWPlayerController::ToggleRunMode()
+{
+	bIsRunMode = !bIsRunMode;
+	
+	SetCharacterMoveSpeed(bIsRunMode ? RunSpeed : WalkSpeed);
+	
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			1.5f,
+			bIsRunMode ? FColor::Green : FColor::White,
+			bIsRunMode ? TEXT("Run Mode") : TEXT("Walk Mode")
+		);
+	}
 }
 
 // helpers

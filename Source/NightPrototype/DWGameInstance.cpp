@@ -7,7 +7,8 @@
 const FName UDWGameInstance::Event_PlayerInspectedCorpse(TEXT("PlayerInspectedCorpse"));
 const FName UDWGameInstance::Event_PlayerReadNoticeBoard(TEXT("PlayerReadNoticeBoard"));
 
-const FName UDWGameInstance::Event_FirstNightStarted(TEXT("NightStarted"));
+const FName UDWGameInstance::Event_FirstNightStarted(TEXT("FirstNightStarted"));
+const FName UDWGameInstance::Event_PlayerSawVampire(TEXT("PlayerSawVampire"));
 
 void UDWGameInstance::AddWorldEvent(FName EventTag)
 {
@@ -89,4 +90,19 @@ void UDWGameInstance::PrintWorldEvents() const
 			FString::Printf(TEXT("World Memory: %s"), *EventTag.ToString())
 			);
 	}
+}
+
+void UDWGameInstance::MarkPlayerSawVampire()
+{
+	AddWorldEvent(Event_PlayerSawVampire);
+}
+
+bool UDWGameInstance::HasPlayerSawVampire() const
+{
+	return HasWorldEvent(Event_PlayerSawVampire);
+}
+
+bool UDWGameInstance::HasFirstNightStarted() const
+{
+	return HasWorldEvent(Event_FirstNightStarted);
 }
