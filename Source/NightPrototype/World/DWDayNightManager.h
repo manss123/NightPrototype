@@ -4,12 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "GameplayTagContainer.h"
 #include "DWDayNightManager.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDWDayNightEvent);
 
 class ADirectionalLight;
 class ASkyLight;
+
+class ADWEncounterDirector;
 
 UCLASS()
 class NIGHTPROTOTYPE_API ADWDayNightManager : public AActor
@@ -19,7 +22,13 @@ class NIGHTPROTOTYPE_API ADWDayNightManager : public AActor
 public:	
 	// Sets default values for this actor's properties
 	ADWDayNightManager();
-
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Intro Encounter")
+	ADWEncounterDirector* EncounterDirector = nullptr;
+	
+	UFUNCTION(BlueprintPure, Category = "Day Night")
+	FGameplayTagContainer GetCurrentContextTags() const;
+	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -28,6 +37,8 @@ protected:
 	
 	void HandleNightStarted();
 	void HandleDayStarted();
+	
+	void RequestNightEncounters();
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Day Night|Debug")
 	bool bShowDebugMessage = true;
@@ -72,6 +83,15 @@ public:
 	float NightSunIntensity = 0.05f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Day Night|Lighting")
+	ADirectionalLight* MoonLight = nullptr;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Day Night|Lighting")
+	float DayMoonIntensity = 0.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Day Night|Lighting")
+	float NightMoonIntensity = 0.35f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Day Night|Lighting")
 	ASkyLight* SkyLight = nullptr;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Day Night|Lighting")
@@ -80,11 +100,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Day Night|Lighting")
 	float NightSkyIntensity = 0.15f;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "First Night")
-	TArray<AActor*> FirstNightActorsToReveal;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "First Night")
-	bool bHasTriggeredFirstNight = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Day Night|Lighting")
+	float MinimumSkyIntensity = 0.35f;
 	
 	UFUNCTION(BlueprintPure, Category = "Day Night")
 	FText GetTimeText() const;

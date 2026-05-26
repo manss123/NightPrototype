@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "DWInteractionTypes.h"
+#include "Interaction/DWInteractionTypes.h"
 #include "DWInteractionOptionsMenuWidget.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDWInteractionOptionSelectedSignature, FDWInteractionOption, Option);

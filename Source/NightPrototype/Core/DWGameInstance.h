@@ -3,7 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "Engine/GameInstance.h"
+#include "DWWorldEventTypes.h"
 #include "DWGameInstance.generated.h"
 
 /**
@@ -18,12 +20,25 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World Memory")
 	TSet<FName> WorldEventTags;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World Memory")
+	FGameplayTagContainer WorldEventGameplayTags;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World Memory")
+	TArray<FDWWorldEvent> WorldEvents;
+	
 public:
 	static const FName Event_PlayerInspectedCorpse;
 	static const FName Event_PlayerReadNoticeBoard;
-	
-	static const FName Event_FirstNightStarted;
+
 	static const FName Event_PlayerSawVampire;
+	static const FName Encounter_VampireRaid;
+	
+	static const FName Event_PlayerFled;
+	static const FName Event_PlayerDefeated;
+	static const FName Event_EnemyKilled;
+	static const FName Event_EnemyEscaped;
+	static const FName Event_VillagerTaken;
+	static const FName Event_VillagerSaved;
 	
 	UFUNCTION(BlueprintCallable, Category = "World Memory")
 	void AddWorldEvent(FName EventTag);
@@ -33,6 +48,21 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "World Memory")
 	void ClearWorldEvents();
+	
+	UFUNCTION(BlueprintCallable, Category = "World Memory|Gameplay Tags")
+	void AddWorldGameplayTag(FGameplayTag EventTag);
+	
+	UFUNCTION(BlueprintPure, Category = "World Memory|Gameplay Tags")
+	bool HasWorldGameplayTag(FGameplayTag EventTag) const;
+	
+	UFUNCTION(BlueprintPure, Category = "World Events")
+	FGameplayTagContainer GetWorldGameplayTags() const;
+	
+	UFUNCTION(BlueprintCallable, Category = "World Memory|Events")
+	void AddWorldEventRecord(const FDWWorldEvent& WorldEvent);
+	
+	UFUNCTION(BlueprintPure, Category = "World Memory|Events")
+	const TArray<FDWWorldEvent>& GetWorldEventRecords() const;
 	
 	UFUNCTION(BlueprintCallable, Category = "World Memory|Events")
 	void MarkPlayerInspectedCorpse();
@@ -50,9 +80,6 @@ public:
 	bool HasPlayerSawVampire() const;
 	
 	UFUNCTION(BlueprintPure, Category = "World Memory|Events")
-	bool HasFirstNightStarted() const;
-	
-	UFUNCTION(BlueprintPure, Category = "World Memory|Events")
 	bool HasPlayerReadNoticeBoard() const;
 	
 	UFUNCTION(BlueprintPure, Category = "World Memory|Debug")
@@ -63,4 +90,10 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "World Memory|Debug")
 	void PrintWorldEvents() const;
+	
+	UFUNCTION(BlueprintCallable, Category = "World Memory|Debug")
+	void PrintWorldEventRecords() const;
+	
+	UFUNCTION(BlueprintPure, Category = "World Memory|Events")
+	bool HasVampireRaidStarted() const;
 };

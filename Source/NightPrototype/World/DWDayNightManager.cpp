@@ -3,21 +3,20 @@
 
 #include "DWDayNightManager.h"
 #include "Engine/Engine.h"
-#include "DWGameInstance.h"
 #include "Engine/DirectionalLight.h"
 #include "Components/LightComponent.h"
 #include "Engine/SkyLight.h"
 #include "Components/SkyLightComponent.h"
+#include "Encounter/DWEncounterDirector.h"
+#include "Core/DWGameplayTags.h"
+#include "GameplayTagContainer.h"
 
-// Sets default values
 ADWDayNightManager::ADWDayNightManager()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 }
 
-// Called when the game starts or when spawned
 void ADWDayNightManager::BeginPlay()
 {
 	Super::BeginPlay();
@@ -25,7 +24,46 @@ void ADWDayNightManager::BeginPlay()
 	bIsNight = CurrentHour >= 18 || CurrentHour < 6.0f;
 }
 
-// Called every frame
+static float GetSunAlpha(float Hour)
+{
+	if (Hour >= 4.0f && Hour < 8.0f)
+	{
+		return (Hour - 4.0f) / 4.0f;
+	}
+
+	if (Hour >= 8.0f && Hour < 16.0f)
+	{
+		return 1.0f;
+	}
+
+	if (Hour >= 16.0f && Hour < 20.0f)
+	{
+		return 1.0f - ((Hour - 16.0f) / 4.0f);
+	}
+
+	return 0.0f;
+}
+
+static float GetMoonAlpha(float Hour)
+{
+	if (Hour >= 16.0f && Hour < 20.0f)
+	{
+		return (Hour - 16.0f) / 4.0f;
+	}
+
+	if (Hour >= 20.0f || Hour < 4.0f)
+	{
+		return 1.0f;
+	}
+
+	if (Hour >= 4.0f && Hour < 8.0f)
+	{
+		return 1.0f - ((Hour - 4.0f) / 4.0f);
+	}
+
+	return 0.0f;
+}
+
 void ADWDayNightManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -51,7 +89,8 @@ void ADWDayNightManager::Tick(float DeltaTime)
 		const float SunPitch = -((CurrentHour - 6.0f) / 24.0f) * 360.0f;
 		SunLight->SetActorRotation(FRotator(SunPitch, -45.0f, 0.0f));
 		
-		const float TargetIntensity = bIsNight ? NightSunIntensity : DaySunIntensity;
+		const float SunAlpha = GetSunAlpha(CurrentHour);
+		const float TargetIntensity = FMath::Lerp(NightSunIntensity, DaySunIntensity, SunAlpha);
 		
 		if (ULightComponent* LightComponent = SunLight->GetLightComponent())
 		{
@@ -59,9 +98,24 @@ void ADWDayNightManager::Tick(float DeltaTime)
 		}
 	}
 	
+	if (MoonLight)
+	{
+		const float MoonAlpha = GetMoonAlpha(CurrentHour);
+		const float TargetIntensity = FMath::Lerp(DayMoonIntensity, NightMoonIntensity, MoonAlpha);
+
+		MoonLight->SetActorRotation(FRotator(-45.0f, 135.0f, 0.0f));
+
+		if (ULightComponent* LightComponent = MoonLight->GetLightComponent())
+		{
+			LightComponent->SetIntensity(TargetIntensity);
+		}
+	}
+	
 	if (SkyLight)
 	{
-		const float TargetSkyIntensity = bIsNight ? NightSkyIntensity : DaySkyIntensity;
+		const float SunAlpha = GetSunAlpha(CurrentHour);
+		const float BlendedSkyIntensity = FMath::Lerp(NightSkyIntensity, DaySkyIntensity, SunAlpha);
+		const float TargetSkyIntensity = FMath::Max(MinimumSkyIntensity, BlendedSkyIntensity);
 
 		if (USkyLightComponent* SkyLightComponent = SkyLight->GetLightComponent())
 		{
@@ -117,37 +171,41 @@ void ADWDayNightManager::HandleNightStarted()
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 4.0f, FColor::Purple, TEXT("Night has started"));
 	}
-
-	if (IsFirstNight() && !bHasTriggeredFirstNight)
-	{
-		bHasTriggeredFirstNight = true;
-		if (UDWGameInstance* DWGameInstance = GetGameInstance<UDWGameInstance>())
-		{
-			DWGameInstance->AddWorldEvent(UDWGameInstance::Event_FirstNightStarted);
-			DWGameInstance->PrintWorldEvents();
-		}
-		
-		for (AActor* ActorToReveal : FirstNightActorsToReveal)
-		{
-			if (!ActorToReveal)
-			{
-				continue;
-			}
-			
-			ActorToReveal->SetActorHiddenInGame(false);
-			ActorToReveal->SetActorEnableCollision(true);
-			ActorToReveal->SetActorTickEnabled(true);
-		}
-		
-		if (bShowDebugMessage && GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(
-				-1, 5.0f, FColor::Red, TEXT("Something has appeared outside the village"));
-		}
-	}
+	
+	RequestNightEncounters();
 
 	OnNightStarted.Broadcast();
 }
+
+void ADWDayNightManager::RequestNightEncounters()
+{
+	if (!EncounterDirector)
+	{
+		if (bShowDebugMessage && GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				3.0f,
+				FColor::Orange,
+				TEXT("No EncounterDirector assigned")
+			);
+		}
+		
+		return;
+	}
+	
+	FGameplayTagContainer ContextTags;
+	ContextTags.AddTag(DWGameplayTags::Context_Night);
+		
+	if (IsFirstNight())
+	{
+		ContextTags.AddTag(DWGameplayTags::Context_FirstNight);
+		ContextTags.AddTag(DWGameplayTags::Context_IntroEncounter);
+	}
+		
+	EncounterDirector->EvaluateEncountersWithGameplayContextAndTime(ContextTags, CurrentDay, CurrentHour);
+}
+
 void ADWDayNightManager::HandleDayStarted()
 {
 	if (bShowDebugMessage && GEngine)
@@ -176,4 +234,22 @@ FText ADWDayNightManager::GetDayTimeText() const
 bool ADWDayNightManager::IsFirstNight() const
 {
 	return CurrentDay == 1 && bIsNight;
+}
+
+FGameplayTagContainer ADWDayNightManager::GetCurrentContextTags() const
+{
+	FGameplayTagContainer ContextTags;
+	
+	if (bIsNight)
+	{
+		ContextTags.AddTag(DWGameplayTags::Context_Night);
+	}
+	
+	if (IsFirstNight())
+	{
+		ContextTags.AddTag(DWGameplayTags::Context_FirstNight);
+		ContextTags.AddTag(DWGameplayTags::Context_IntroEncounter);
+	}
+	
+	return ContextTags;
 }

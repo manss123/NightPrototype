@@ -2,7 +2,7 @@
 
 
 #include "DWPlayerController.h"
-#include "DWInteractable.h"
+#include "Interaction/DWInteractable.h"
 
 #include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "EnhancedInputComponent.h"
@@ -17,11 +17,14 @@
 #include "NavigationSystem.h"
 #include "Engine/Engine.h"
 #include "Blueprint/UserWidget.h"
-#include "DWInteractionPromptWidget.h"
+#include "UI/DWInteractionPromptWidget.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
-#include "DWDialogueWidget.h"
-#include "DWInteractionOptionsMenuWidget.h"
-#include "DWInteractableActor.h"
+#include "UI/DWDialogueWidget.h"
+#include "UI/DWInteractionOptionsMenuWidget.h"
+#include "Interaction/DWInteractableActor.h"
+#include "Interaction/DWInteractableCharacter.h"
+#include "Combat/Core/DWCombatComponent.h"
+#include "Combat/Body/DWBodyHealthComponent.h"
 
 ADWPlayerController::ADWPlayerController()
 {
@@ -116,6 +119,13 @@ void ADWPlayerController::Tick(float DeltaSeconds)
 	
 	UpdateInteractionFocus();
 	
+	if (IsControlledPawnInputLocked())
+	{
+		bIsDestinationHeld = false;
+		bIsActionHoldMode = false;
+		return;
+	}
+	
 	if (FocusedInteractActor && InteractionPromptWidget && !bIsInteractionOptionsMenuOpen)
 	{
 		const FVector2D MousePosition =  UWidgetLayoutLibrary::GetMousePositionOnViewport(this);
@@ -170,6 +180,15 @@ void ADWPlayerController::HandleDestinationStarted()
 {
 	HideDialogue();
 	
+	if (IsControlledPawnInputLocked())
+	{
+		bIsDestinationHeld = false;
+		bIsActionHoldMode = false;
+		ClearPendingInteract();
+		StopMovement();
+		return;
+	}
+	
 	if (bIsInteractionOptionsMenuOpen)
 	{
 		HideInteractionOptionsMenu();
@@ -203,6 +222,7 @@ void ADWPlayerController::EnterActionHoldMode()
 	bIsActionHoldMode = true;
 
 	ClearPendingInteract();
+	StopControlledPawnAutoAttack();
 
 	StopMovement();
 
@@ -281,7 +301,7 @@ void ADWPlayerController::MoveDirectlyTowardCursor()
 		return;
 	}
 
-	ControlledPawn->AddMovementInput(Direction.GetSafeNormal(), 1.0f, true);
+	ControlledPawn->AddMovementInput(Direction.GetSafeNormal(), 1.0f);
 }
 
 void ADWPlayerController::IssueCommandUnderCursor(bool bAllowInteractCommand)
@@ -341,6 +361,7 @@ void ADWPlayerController::IssueCommandUnderCursor(bool bAllowInteractCommand)
 	}
 
 	ClearPendingInteract();
+	StopControlledPawnAutoAttack();
 	MoveToLocation(Hit.ImpactPoint);
 }
 
@@ -387,7 +408,8 @@ void ADWPlayerController::CheckPendingInteract()
 	{
 		return;
 	}
-
+	
+	PendingInteractLocation = GetBestInteractLocation(PendingInteractActor);
 	const FVector targetLocation = PendingInteractLocation;
 	
 	const FVector PawnFloorLocation = IDWInteractable::GetActorFloorLocation(ControlledPawn);
@@ -546,6 +568,11 @@ FVector ADWPlayerController::GetBestInteractLocation(AActor* InteractableActor) 
 		return BaseInteractableActor->GetInteractLocationForInteractor(GetPawn());
 	}
 	
+	if (ADWInteractableCharacter* InteractableCharacter = Cast<ADWInteractableCharacter>(InteractableActor))
+	{
+		return InteractableCharacter->GetInteractLocationForInteractor(GetPawn());
+	}
+	
 	return IDWInteractable::Execute_GetInteractLocation(InteractableActor);
 }
 
@@ -568,6 +595,19 @@ void ADWPlayerController::SetFocusedInteractActor(AActor* NewFocusedActor)
 {
 	if (FocusedInteractActor == NewFocusedActor)
 	{
+		if (FocusedInteractActor && InteractionPromptWidget && !bIsInteractionOptionsMenuOpen)
+		{
+			FText PromptText = IDWInteractable::Execute_GetInteractText(FocusedInteractActor);
+			
+			const TArray<FDWInteractionOption> Options = IDWInteractable::Execute_GetInteractionOptions(FocusedInteractActor);
+			if (Options.Num() > 0 && !Options[0].Label.IsEmpty())
+			{
+				PromptText = Options[0].Label;
+			}
+			
+			InteractionPromptWidget->SetPromptText(PromptText);
+		}
+		
 		return;
 	}
 	
@@ -774,4 +814,37 @@ FVector2D ADWPlayerController::GetClampedMenuPosition(const FVector2D& AnchorPos
 	MenuPosition.Y = FMath::Clamp(MenuPosition.Y, Margin, ViewPortSize.Y - MenuSize.Y - Margin);
 	
 	return MenuPosition;
+}
+
+void ADWPlayerController::StopControlledPawnAutoAttack()
+{
+	APawn* ControlledPawn = GetPawn();
+	if (!ControlledPawn)
+	{
+		return;
+	}
+	
+	if (UDWCombatComponent* CombatComponent = ControlledPawn->FindComponentByClass<UDWCombatComponent>())
+	{
+		CombatComponent->StopAutoAttack();
+	}
+}
+
+bool ADWPlayerController::IsControlledPawnInputLocked() const
+{
+	const APawn* ControlledPawn = GetPawn();
+	if (!ControlledPawn)
+	{
+		return true;
+	}
+	
+	const UDWBodyHealthComponent* BodyHealth = ControlledPawn->FindComponentByClass<UDWBodyHealthComponent>();
+	{
+		if (!BodyHealth)
+		{
+			return false;
+		}
+		
+		return BodyHealth->IsIncapacitated();
+	}
 }

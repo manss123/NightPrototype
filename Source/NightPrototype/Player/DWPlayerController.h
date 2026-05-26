@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
-#include "DWInteractionTypes.h"
+#include "Interaction/DWInteractionTypes.h"
 #include "DWPlayerController.generated.h"
 
 class UInputAction;
@@ -12,6 +12,7 @@ class UInputMappingContext;
 class UDWInteractionPromptWidget;
 class UDWDialogueWidget;
 class UDWInteractionOptionsMenuWidget;
+class UDWBodyHealthComponent;
 
 /**
  * 
@@ -134,6 +135,8 @@ protected:
 	
 	void ShowInteractionOptionsMenu(AActor* InteractableActor, const TArray<FDWInteractionOption>& Options);
 	void HideInteractionOptionsMenu();
+	
+	void StopControlledPawnAutoAttack();
 
 	UFUNCTION()
 	void HandleInteractionOptionSelected(FDWInteractionOption Option);
@@ -150,4 +153,6 @@ protected:
 	FVector GetBestInteractLocation(AActor* InteractableActor) const;
 	
 	FVector2D GetClampedMenuPosition(const FVector2D& AnchorPosition, const FVector2D& MenuSize) const;
+	
+	bool IsControlledPawnInputLocked() const;
 };
