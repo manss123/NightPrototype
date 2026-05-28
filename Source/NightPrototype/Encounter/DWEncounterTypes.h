@@ -80,6 +80,15 @@ struct FDWEncounterInstance
 	UPROPERTY(BlueprintReadWrite, Category = "Encounter")
 	TObjectPtr<AActor> PrimaryEnemyActor = nullptr;
 	
+	UPROPERTY(BlueprintReadWrite, Category = "Encounter")
+	TObjectPtr<AActor> VictimActor = nullptr;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Encounter|Time")
+	int32 StartGameDay = 1;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Encounter|Time")
+	float StartGameHour = 0.0f;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Encounter|Gameplay Tags")
 	FGameplayTag EncounterGameplayTag;
 	
@@ -91,4 +100,10 @@ struct FDWEncounterInstance
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Encounter|Gameplay Tags")
 	FGameplayTagContainer ContextGameplayTags;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Encounter|Gameplay Tags")
+	FGameplayTag LocationGameplayTag;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Encounter|Gameplay Tags")
+	FGameplayTag ThreatGameplayTag;
 };

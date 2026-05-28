@@ -10,6 +10,8 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FDWOnBodyPartDamaged, FGameplayTag, BodyPartTag, float, CurrentHealth, float, MaxHealth);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDWOnBodyPartDisabled, FGameplayTag, BodyPartTag);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FDWOnBodyDamaged, FGameplayTag, BodyPartTag, float, DamageAmount);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDWOnBodyDeath);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDWOnBodyDowned);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FDWOnBodyRecovered);
@@ -81,6 +83,9 @@ public:
 	
 	UPROPERTY(BlueprintAssignable, Category = "Body Health")
 	FDWOnBodyPartDamaged OnBodyPartDamaged;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Body Health")
+	FDWOnBodyDamaged OnDamaged;
 	
 	UPROPERTY(BlueprintAssignable, Category = "Body Health")
 	FDWOnBodyPartDisabled OnBodyPartDisabled;

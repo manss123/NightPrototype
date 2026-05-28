@@ -2,6 +2,7 @@
 
 
 #include "DWDialogueSelectorLibrary.h"
+#include "Core/DWGameInstance.h"
 
 static bool HasAllTags(const FGameplayTagContainer& OwnedTags, const FGameplayTagContainer& RequiredTags)
 {
@@ -36,7 +37,35 @@ static bool MemoryHasAllTags(UDWMemoryComponent* MemoryComponent, const FGamepla
 	return true;
 }
 
-bool UDWDialogueSelectorLibrary::SelectBestDialogueLine(UDWDialogueBankDataAsset* DialogueBank, const FGameplayTagContainer& WorldTags, UDWMemoryComponent* MemoryComponent, const FGameplayTagContainer& ContextTags, FDWDialogueLine& OutLine)
+static bool HasEventRecordCondition(const FDWDialogueLine& Line)
+{
+	return Line.RequiredWorldEventTag.IsValid()
+	|| Line.RequiredEncounterTag.IsValid()
+	|| Line.RequiredThreatTag.IsValid()
+	|| Line.RequiredLocationTag.IsValid();
+}
+
+static bool MatchesEventRecordCondition(UDWGameInstance* GameInstance, const FDWDialogueLine& Line)
+{
+	if (!HasEventRecordCondition(Line))
+	{
+		return true;
+	}
+	
+	if (!GameInstance)
+	{
+		return false;
+	}
+	
+	return GameInstance->HasWorldEventRecordMatching(
+		Line.RequiredWorldEventTag,
+		Line.RequiredEncounterTag,
+		Line.RequiredThreatTag,
+		Line.RequiredLocationTag
+	);
+}
+
+bool UDWDialogueSelectorLibrary::SelectBestDialogueLine(UDWDialogueBankDataAsset* DialogueBank, const FGameplayTagContainer& WorldTags, UDWMemoryComponent* MemoryComponent, const FGameplayTagContainer& ContextTags, UDWGameInstance* GameInstance, FDWDialogueLine& OutLine)
 {
 	if (!DialogueBank)
 	{
@@ -59,6 +88,11 @@ bool UDWDialogueSelectorLibrary::SelectBestDialogueLine(UDWDialogueBankDataAsset
 		}
 		
 		if (!HasAllTags(ContextTags, Line.RequiredContextTags))
+		{
+			continue;
+		}
+		
+		if (!MatchesEventRecordCondition(GameInstance, Line))
 		{
 			continue;
 		}

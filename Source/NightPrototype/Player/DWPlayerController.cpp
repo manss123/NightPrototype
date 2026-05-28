@@ -117,14 +117,16 @@ void ADWPlayerController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	
-	UpdateInteractionFocus();
-	
 	if (IsControlledPawnInputLocked())
 	{
+		SetFocusedInteractActor(nullptr);
+		
 		bIsDestinationHeld = false;
 		bIsActionHoldMode = false;
 		return;
 	}
+	
+	UpdateInteractionFocus();
 	
 	if (FocusedInteractActor && InteractionPromptWidget && !bIsInteractionOptionsMenuOpen)
 	{

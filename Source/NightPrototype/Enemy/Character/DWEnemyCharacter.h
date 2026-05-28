@@ -19,9 +19,16 @@ public:
 	
 	virtual UDWEnemyProfileDataAsset* GetEnemyProfile_Implementation() const override;
 	virtual void InteractWithOption_Implementation(AActor* Interactor, EDWInteractionAction Action) override;
+	virtual bool CanInteract_Implementation(AActor* Interactor) override;
 	
 	virtual TArray<FDWInteractionOption> GetInteractionOptions_Implementation() override;
 	virtual FText GetInteractText_Implementation() override;
+	
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Activation")
+	void SetEnemyRevealed(bool bRevealed);
+	
+	UFUNCTION(BlueprintPure, Category = "Enemy|Activation")
+	bool IsEnemyRevealed() const;
 
 protected:
 	virtual void BeginPlay() override;
@@ -34,13 +41,20 @@ protected:
 	float AttackDamageReceived = 25.0f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
-	bool bPrintBodyHealthAfterAttack = true;
+	bool bPrintBodyHealthAfterAttack = false;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Activation")
+	bool bStartRevealed = true;
+	
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Activation")
+	bool bIsRevealed = true;
 	
 private:
 	void RegisterWithEnemyRoster();
 	void UnregisterFromEnemyRoster();
 	void HandleAttackInteraction(AActor* Interactor);
 	bool IsEnemyDead() const;
+	bool IsEnemyIncapacitated() const;
 
 public:
 	virtual void Tick(float DeltaTime) override;

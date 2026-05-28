@@ -96,4 +96,15 @@ public:
 	
 	UFUNCTION(BlueprintPure, Category = "World Memory|Events")
 	bool HasVampireRaidStarted() const;
+	
+	UFUNCTION(BlueprintPure, Category = "World Memory|Events")
+	bool HasWorldEventRecordWithThreat(FGameplayTag EventTag, FGameplayTag ThreatTag) const;
+	
+	UFUNCTION(BlueprintCallable, Category = "World Memory|Events")
+	bool HasWorldEventRecordMatching(
+		FGameplayTag EventTag,
+		FGameplayTag EncounterTag,
+		FGameplayTag ThreatTag,
+		FGameplayTag LocationTag
+	) const;
 };

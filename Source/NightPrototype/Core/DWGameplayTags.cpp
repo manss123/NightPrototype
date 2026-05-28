@@ -19,6 +19,7 @@ namespace DWGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(World_Event_EnemyKilled, "World.Event.EnemyKilled");
 	UE_DEFINE_GAMEPLAY_TAG(World_Event_VillagerTaken, "World.Event.VillagerTaken");
 	UE_DEFINE_GAMEPLAY_TAG(World_Event_VillagerSaved, "World.Event.VillagerSaved");
+	UE_DEFINE_GAMEPLAY_TAG(World_Event_VillagerKilled, "World.Event.VillagerKilled");
 
 	// Context
 	UE_DEFINE_GAMEPLAY_TAG(Context_IntroEncounter, "Context.IntroEncounter");
@@ -49,6 +50,8 @@ namespace DWGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Memory_Player_KilledVampire, "Memory.Player.KilledVampire");
 	UE_DEFINE_GAMEPLAY_TAG(Memory_Player_SavedVictim, "Memory.Player.SavedVictim");
 	UE_DEFINE_GAMEPLAY_TAG(Memory_Player_ReadNoticeBoard, "Memory.Player.ReadNoticeBoard");
+	
+	UE_DEFINE_GAMEPLAY_TAG(Memory_NPC_PlayerTalkedToMe, "Memory.NPC.PlayerTalkedToMe");
 	
 	UE_DEFINE_GAMEPLAY_TAG(Memory_Enemy_DefeatedPlayer, "Memory.Enemy.DefeatedPlayer");
 	UE_DEFINE_GAMEPLAY_TAG(Memory_Enemy_WasDamagedByPlayer, "Memory.Enemy.WasDamagedByPlayer");

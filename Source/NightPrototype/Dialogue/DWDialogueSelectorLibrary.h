@@ -10,6 +10,8 @@
 #include "Memory/DWMemoryComponent.h"
 #include "DWDialogueSelectorLibrary.generated.h"
 
+class UDWGameInstance;
+
 UCLASS()
 class NIGHTPROTOTYPE_API UDWDialogueSelectorLibrary : public UBlueprintFunctionLibrary
 {
@@ -22,6 +24,7 @@ public:
 		const FGameplayTagContainer& WorldTags,
 		UDWMemoryComponent* MemoryComponent,
 		const FGameplayTagContainer& ContextTags,
+		UDWGameInstance* GameInstance,
 		FDWDialogueLine& OutLine
 		);
 };

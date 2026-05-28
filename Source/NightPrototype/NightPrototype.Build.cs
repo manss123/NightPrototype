@@ -7,8 +7,10 @@ public class NightPrototype : ModuleRules
 	public NightPrototype(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "AIModule", "EnhancedInput", "NavigationSystem", "UMG" });
+
+		PublicIncludePaths.Add(ModuleDirectory);
+		
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "AIModule", "EnhancedInput", "NavigationSystem", "UMG", "GameplayTags" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

@@ -9,6 +9,10 @@
 #include "GameplayTagContainer.h"
 #include "DWEncounterDirector.generated.h"
 
+class ADWDayNightManager;
+class UDWEnemyAIComponent;
+class UDWBodyHealthComponent;
+
 UCLASS()
 class NIGHTPROTOTYPE_API ADWEncounterDirector : public AActor
 {
@@ -49,6 +53,21 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Encounter")
 	TArray<UDWEncounterTemplateDataAsset*> EncounterTemplates;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Encounter|Targeting")
+	TObjectPtr<AActor> DefaultEncounterTargetActor = nullptr;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Encounter|Follow Up")
+	TArray<TObjectPtr<AActor>> ActorsToRevealOnVillagerTaken;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Encounter|Time")
+	TObjectPtr<ADWDayNightManager> DayNightManager = nullptr;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Encounter|Time")
+	int32 LastKnowGameDay = 1;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Encounter|Time")
+	float LastKnownGameHour = 0.0f;
 
 	UDWEncounterTemplateDataAsset* FindBestEligibleEncountersByGameplayContext(const FGameplayTagContainer& ContextTags) const;
 	
@@ -57,5 +76,19 @@ protected:
 	bool StartEncounterInternal(UDWEncounterTemplateDataAsset* EncounterData, int32 CurrentDay, float CurrentHour);
 	
 private:
+	TWeakObjectPtr<AActor> BoundEncounterTargetActor;
+	
 	void ApplyNemesisForOutcome(const FDWEncounterInstance& Instance, FGameplayTag OutcomeGameplayTag);
+	void ActivatePrimaryEnemyEncounter(AActor* EnemyActor);
+	AActor* GetDefaultEncounterTarget() const;
+	void BindTargetOutcome(AActor* TargetActor);
+	void ResolveEncountersForBoundTarget(FGameplayTag OutcomeGameplayTag);
+	
+	UFUNCTION()
+	void HandleEncounterTargetDeath();
+	
+	UFUNCTION()
+	void HandleEncounterTargetDowned();
+	
+	void RevealActors(const TArray<TObjectPtr<AActor>>& Actors) const;
 };

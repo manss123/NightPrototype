@@ -18,6 +18,12 @@ struct FDWWorldEvent
 	FGameplayTag EventTag;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World Event")
+	FGameplayTag EncounterTag;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World Event")
+	FGameplayTag ThreatTag;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World Event")
 	FGameplayTagContainer ContextTags;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World Event")

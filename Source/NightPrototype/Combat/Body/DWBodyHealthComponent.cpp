@@ -53,8 +53,16 @@ void UDWBodyHealthComponent::ApplyDamageToBodyPart(FGameplayTag BodyPartTag, flo
 		return;
 	}
 	
+	const float PreviousHealth = BodyPart->CurrentHealth;
+	
 	BodyPart->CurrentHealth = FMath::Clamp(BodyPart->CurrentHealth - DamageAmount, 0, BodyPart->MaxHealth);
 	
+	const float ActualDamage = PreviousHealth - BodyPart->CurrentHealth;
+	if (ActualDamage <= 0.0f)
+	{
+		return;
+	}
+	OnDamaged.Broadcast(BodyPart->BodyPartTag, ActualDamage);
 	OnBodyPartDamaged.Broadcast(BodyPart->BodyPartTag, BodyPart->CurrentHealth, BodyPart->MaxHealth);
 	
 	if (!bIsDead && !bIsDowned && BodyPart->CurrentHealth < BodyPart->MaxHealth)

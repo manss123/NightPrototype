@@ -20,6 +20,7 @@ namespace DWGameplayTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(World_Event_EnemyKilled);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(World_Event_VillagerTaken);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(World_Event_VillagerSaved);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(World_Event_VillagerKilled);
 	
 	// Context
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Context_IntroEncounter);
@@ -50,6 +51,8 @@ namespace DWGameplayTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Memory_Player_KilledVampire);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Memory_Player_SavedVictim);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Memory_Player_ReadNoticeBoard);
+	
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Memory_NPC_PlayerTalkedToMe);
 	
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Memory_Enemy_DefeatedPlayer);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Memory_Enemy_WasDamagedByPlayer);

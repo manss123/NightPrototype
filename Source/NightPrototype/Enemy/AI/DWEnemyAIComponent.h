@@ -7,7 +7,7 @@
 #include "DWEnemyAIComponent.generated.h"
 
 UENUM(BlueprintType)
-enum class EDWEnemmyAIState : uint8
+enum class EDWEnemyAIState : uint8
 {
 	Idle,
 	Chasing,
@@ -28,11 +28,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Enemy AI")
 	void StopAI();
 	
+	UFUNCTION(BlueprintCallable, Category = "Enemy AI")
+	void SetTarget(AActor* NewTarget);
+	
+	UFUNCTION(BlueprintCallable, Category = "Enemy AI")
+	void ClearTarget();
+	
 	UFUNCTION(BlueprintPure, Category = "Enemy AI")
 	bool IsAIActive() const;
 	
 	UFUNCTION(BlueprintPure, Category = "Enemy AI")
-	EDWEnemmyAIState GetAIState() const;
+	EDWEnemyAIState GetAIState() const;
+	
+	UFUNCTION(BlueprintPure, Category = "Enemy AI")
+	AActor* GetCurrentTarget() const;
 
 protected:
 	virtual void BeginPlay() override;
@@ -50,17 +59,18 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy AI")
 	bool bStartActive = false;
 	
+	// If true, this enemy can find the player by itself. Encounter-driven enemies enemy can find the player by itself. Encounter-driven enemies can keep this false and receive targets via SetTarget().
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy AI")
-	float AttackRangeBuffer = 40.0f;
+	bool bAutoAcquirePlayer = true;
 	
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy AI")
 	bool bIsAIActive = false;
 	
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy AI")
-	EDWEnemmyAIState AIState = EDWEnemmyAIState::Idle;
+	EDWEnemyAIState AIState = EDWEnemyAIState::Idle;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy AI|Debug")
-	bool bShowDebugMessage = true;
+	bool bShowDebugMessage = false;
 	
 private:
 	FTimerHandle ThinkTimerHandle;

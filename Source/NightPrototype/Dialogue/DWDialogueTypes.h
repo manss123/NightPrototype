@@ -24,6 +24,18 @@ struct FDWDialogueLine
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue|Conditions")
 	FGameplayTagContainer RequiredContextTags;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue|Event Record Conditions")
+	FGameplayTag RequiredWorldEventTag;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue|Event Record Conditions")
+	FGameplayTag RequiredEncounterTag;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue|Event Record Conditions")
+	FGameplayTag RequiredThreatTag;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue|Event Record Conditions")
+	FGameplayTag RequiredLocationTag;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
 	int32 Priority = 0;
 };

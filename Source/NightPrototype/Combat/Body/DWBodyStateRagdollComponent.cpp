@@ -118,8 +118,8 @@ void UDWBodyStateRagdollComponent::ExitRagdoll()
 			FCollisionQueryParams QueryParams;
 			QueryParams.AddIgnoredActor(OwnerCharacter);
 			
-			const FVector TraceStart = RecoveryBoneLocation + FVector(0.0f, 0.0f, 200.0f);
-			const FVector TraceEnd = RecoveryBoneLocation - FVector(0.0f, 0.0f, 500.0f);
+			const FVector TraceStart = RecoveryBoneLocation + FVector(0.0f, 0.0f, 30.0f);
+			const FVector TraceEnd = RecoveryBoneLocation - FVector(0.0f, 0.0f, 300.0f);
 			
 			if (World->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_Visibility, QueryParams))
 			{

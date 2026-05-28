@@ -38,8 +38,11 @@ void UDWCombatComponent::AttackActor(AActor* TargetActor)
 	{
 		FaceTarget(TargetActor);
 	}
-
-	TargetHealth->ApplyDamageToCore(GetAttackDamage());
+	
+	const float DamageAmount = GetAttackDamage();
+	TargetHealth->ApplyDamageToCore(DamageAmount);
+	
+	OnAttackHit.Broadcast(TargetActor, DamageAmount);
 	
 	if (bShowDebugCombatMessages && GEngine)
 	{
@@ -54,7 +57,7 @@ void UDWCombatComponent::AttackActor(AActor* TargetActor)
 				TEXT("%s attacked %s: %.1f damage"),
 				*OwnerName,
 				*TargetName,
-				GetAttackDamage()
+				DamageAmount
 			)
 		);
 	}
@@ -78,20 +81,7 @@ void UDWCombatComponent::StartAutoAttack(AActor* TargetActor)
 	}
 	
 	CurrentAttackTarget = TargetActor;
-	
-	PerformAutoAttackTick();
-	
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(AutoAttackTimerHandle);
-		World->GetTimerManager().SetTimer(
-		AutoAttackTimerHandle,
-		this,
-		&UDWCombatComponent::PerformAutoAttackTick,
-		GetAttackCooldown(),
-		true
-		);
-	}
+	BeginAttackWindUp();
 }
 
 void UDWCombatComponent::StopAutoAttack()
@@ -107,6 +97,7 @@ void UDWCombatComponent::StopAutoAttack()
 	}
 	
 	CurrentAttackTarget = nullptr;
+	bIsAttackWindingUp = false;
 	
 	if (UWorld* World = GetWorld())
 	{
@@ -116,7 +107,57 @@ void UDWCombatComponent::StopAutoAttack()
 
 bool UDWCombatComponent::IsAutoAttacking() const
 {
-	return CurrentAttackTarget != nullptr;
+	return HasAttackTarget();
+}
+
+void UDWCombatComponent::BeginAttackWindUp()
+{
+	if (!CurrentAttackTarget)
+	{
+		StopAutoAttack();
+		return;
+	}
+	
+	if (!CanTargetActor(CurrentAttackTarget))
+	{
+		StopAutoAttack();
+		return;
+	}
+	
+	if (!CanAttackActor(CurrentAttackTarget))
+	{
+		StopAutoAttack();
+		return;
+	}
+	
+	bIsAttackWindingUp = true;
+	
+	OnAttackStarted.Broadcast(CurrentAttackTarget);
+	
+	if (bShowDebugCombatMessages && GEngine)
+	{
+		const FString OwnerName = GetOwner() ? GetOwner()->GetName() : TEXT("Unknown");
+		const FString TargetName = CurrentAttackTarget ? CurrentAttackTarget->GetName() : TEXT("Unknown");
+
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			1.5f,
+			FColor::Yellow,
+			FString::Printf(TEXT("%s winding up attack on %s"), *OwnerName, *TargetName)
+		);
+	}
+	
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(AutoAttackTimerHandle);
+		World->GetTimerManager().SetTimer(
+		AutoAttackTimerHandle,
+		this,
+		&UDWCombatComponent::PerformAutoAttackTick,
+		FMath::Max(0.0f, FirstAttackDelay),
+		false
+		);
+	}
 }
 
 void UDWCombatComponent::PerformAutoAttackTick()
@@ -133,12 +174,27 @@ void UDWCombatComponent::PerformAutoAttackTick()
 		return;
 	}
 	
+	bIsAttackWindingUp = false;
+	
 	if (!CanAttackActor(CurrentAttackTarget))
 	{
+		StopAutoAttack();
 		return;
 	}
 	
 	AttackActor(CurrentAttackTarget);
+	
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(AutoAttackTimerHandle);
+		World->GetTimerManager().SetTimer(
+			AutoAttackTimerHandle,
+			this,
+			&UDWCombatComponent::BeginAttackWindUp,
+			GetAttackCooldown(),
+			false
+		);
+	}
 }
 
 bool UDWCombatComponent::IsTargetInAttackRange(AActor* TargetActor) const
@@ -161,6 +217,11 @@ bool UDWCombatComponent::CanAttackActor(AActor* TargetActor) const
 AActor* UDWCombatComponent::GetCurrentAttackTarget() const
 {
 	return CurrentAttackTarget;
+}
+
+bool UDWCombatComponent::HasAttackTarget() const
+{
+	return CurrentAttackTarget != nullptr;
 }
 
 void UDWCombatComponent::FaceTarget(AActor* TargetActor)
@@ -229,6 +290,11 @@ float UDWCombatComponent::GetAttackSpeedMultiplier() const
 float UDWCombatComponent::GetDamagerMultiplier() const
 {
 	return FMath::Max(0.0f, DamageMultiplier);
+}
+
+bool UDWCombatComponent::IsAttackWingUp() const
+{
+	return bIsAttackWindingUp;
 }
 
 void UDWCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType,

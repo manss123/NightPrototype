@@ -6,6 +6,7 @@
 #include "Enemy/Roster/DWEnemyRosterSubsystem.h"
 #include "Combat/Body/DWBodyHealthComponent.h"
 #include "Combat/Core/DWCombatComponent.h"
+#include "Enemy/AI/DWEnemyAIComponent.h"
 
 
 ADWEnemyCharacter::ADWEnemyCharacter()
@@ -35,6 +36,8 @@ void ADWEnemyCharacter::BeginPlay()
 	Super::BeginPlay();
 	
 	RegisterWithEnemyRoster();
+	
+	SetEnemyRevealed(bStartRevealed);
 }
 
 void ADWEnemyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -72,6 +75,16 @@ void ADWEnemyCharacter::InteractWithOption_Implementation(AActor* Interactor, ED
 	}
 	
 	Super::InteractWithOption_Implementation(Interactor, Action);
+}
+
+bool ADWEnemyCharacter::CanInteract_Implementation(AActor* Interactor)
+{
+	if (!bIsRevealed)
+	{
+		return false;
+	}
+	
+	return Super::CanInteract_Implementation(Interactor);
 }
 
 void ADWEnemyCharacter::RegisterWithEnemyRoster()
@@ -126,7 +139,7 @@ TArray<FDWInteractionOption> ADWEnemyCharacter::GetInteractionOptions_Implementa
 {
 	TArray<FDWInteractionOption> Options;
 	
-	if (IsEnemyDead())
+	if (IsEnemyIncapacitated())
 	{
 		FDWInteractionOption InspectOption;
 		InspectOption.Action = EDWInteractionAction::Inspect;
@@ -144,11 +157,49 @@ TArray<FDWInteractionOption> ADWEnemyCharacter::GetInteractionOptions_Implementa
 
 FText ADWEnemyCharacter::GetInteractText_Implementation()
 {
-	return IsEnemyDead() ? FText::FromString(TEXT("Inspect")) : FText::FromString(TEXT("Attack"));
+	return IsEnemyIncapacitated() ? FText::FromString(TEXT("Inspect")) : FText::FromString(TEXT("Attack"));
 }
 
 bool ADWEnemyCharacter::IsEnemyDead() const
 {
 	const UDWBodyHealthComponent* BodyHealth = FindComponentByClass<UDWBodyHealthComponent>();
 	return BodyHealth && BodyHealth->IsDead();
+}
+
+bool ADWEnemyCharacter::IsEnemyIncapacitated() const
+{
+	const UDWBodyHealthComponent* BodyHealth = FindComponentByClass<UDWBodyHealthComponent>();
+	return BodyHealth && BodyHealth->IsIncapacitated();
+}
+
+void ADWEnemyCharacter::SetEnemyRevealed(bool bRevealed)
+{
+	bIsRevealed = bRevealed;
+	
+	if (!bIsRevealed)
+	{
+		if (UDWEnemyAIComponent* EnemyAI = FindComponentByClass<UDWEnemyAIComponent>())
+		{
+			EnemyAI->StopAI();
+		}
+		
+		if (UDWCombatComponent* CombatComponent = FindComponentByClass<UDWCombatComponent>())
+		{
+			CombatComponent->StopAutoAttack();
+		}
+		
+		if (AController* EnemyController = GetController())
+		{
+			EnemyController->StopMovement();
+		}
+	}
+	
+	SetActorHiddenInGame(!bIsRevealed);
+	SetActorEnableCollision(bIsRevealed);
+	SetActorTickEnabled(bIsRevealed);
+}
+
+bool ADWEnemyCharacter::IsEnemyRevealed() const
+{
+	return bIsRevealed;
 }

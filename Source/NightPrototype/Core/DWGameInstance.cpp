@@ -199,12 +199,15 @@ void UDWGameInstance::PrintWorldEventRecords() const
 			5.0f,
 			FColor::Silver,
 			FString::Printf(
-				TEXT("World Event Record: %s | Day %d | Hour %.2f | Location %s"),
+		TEXT("World Event Record: %s | Encounter %s | Threat %s | Location %s | Source %s | Day %d | Hour %.2f"),
 				*WorldEvent.EventTag.ToString(),
+				*WorldEvent.EncounterTag.ToString(),
+				*WorldEvent.ThreatTag.ToString(),
+				*WorldEvent.LocationTag.ToString(),
+				*WorldEvent.SourceActorId.ToString(),
 				WorldEvent.GameDay,
-				WorldEvent.GameHour,
-				*WorldEvent.LocationTag.ToString()
-				)
+				WorldEvent.GameHour
+			)
 		);
 	}
 }
@@ -212,4 +215,59 @@ void UDWGameInstance::PrintWorldEventRecords() const
 FGameplayTagContainer UDWGameInstance::GetWorldGameplayTags() const
 {
 	return  WorldEventGameplayTags;
+}
+
+bool UDWGameInstance::HasWorldEventRecordWithThreat(FGameplayTag EventTag, FGameplayTag ThreatTag) const
+{
+	if (!EventTag.IsValid() || !ThreatTag.IsValid())
+	{
+		return false;
+	}
+	
+	for (const FDWWorldEvent& WorldEvent : WorldEvents)
+	{
+		if (WorldEvent.EventTag.MatchesTagExact(EventTag) && WorldEvent.ThreatTag.MatchesTagExact(ThreatTag))
+		{
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+bool UDWGameInstance::HasWorldEventRecordMatching(FGameplayTag EventTag, FGameplayTag EncounterTag, FGameplayTag ThreatTag, FGameplayTag LocationTag) const
+{
+	const bool bHasAnyFilter = EventTag.IsValid() || EncounterTag.IsValid() || ThreatTag.IsValid() || LocationTag.IsValid();
+	
+	if (!bHasAnyFilter)
+	{
+		return false;
+	}
+	
+	for (const FDWWorldEvent& WorldEvent : WorldEvents)
+	{
+		if (EventTag.IsValid() && !WorldEvent.EventTag.MatchesTagExact(EventTag))
+		{
+			continue;
+		}
+		
+		if (EncounterTag.IsValid() && !WorldEvent.EncounterTag.MatchesTagExact(EncounterTag))
+		{
+			continue;
+		}
+		
+		if (ThreatTag.IsValid() && !WorldEvent.ThreatTag.MatchesTagExact(ThreatTag))
+		{
+			continue;
+		}
+		
+		if (LocationTag.IsValid() && !WorldEvent.LocationTag.MatchesTag(LocationTag))
+		{
+			continue;
+		}
+		
+		return true;
+	}
+	
+	return false;
 }

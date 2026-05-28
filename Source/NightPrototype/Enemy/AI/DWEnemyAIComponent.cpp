@@ -47,7 +47,7 @@ void UDWEnemyAIComponent::Think()
 		return;
 	}
 	
-	if (!CurrentTarget)
+	if (!CurrentTarget && bAutoAcquirePlayer)
 	{
 		AcquirePlayerTarget();
 	}
@@ -55,14 +55,14 @@ void UDWEnemyAIComponent::Think()
 	if (!IsTargetValid())
 	{
 		CurrentTarget = nullptr;
-		AIState = EDWEnemmyAIState::Idle;
+		AIState = EDWEnemyAIState::Idle;
 		return;
 	}
 	
 	if (!ShouldKeepTarget())
 	{
 		CurrentTarget = nullptr;
-		AIState = EDWEnemmyAIState::Idle;
+		AIState = EDWEnemyAIState::Idle;
 		return;
 	}
 	
@@ -134,7 +134,7 @@ void UDWEnemyAIComponent::ChaseTarget()
 		return;
 	}
 	
-	AIState = EDWEnemmyAIState::Chasing;
+	AIState = EDWEnemyAIState::Chasing;
 	UAIBlueprintHelperLibrary::SimpleMoveToActor(Controller, CurrentTarget);
 }
 
@@ -154,7 +154,7 @@ void UDWEnemyAIComponent::AttackTarget()
 		}
 	}
 	
-	AIState = EDWEnemmyAIState::Attacking;
+	AIState = EDWEnemyAIState::Attacking;
 	
 	if (UDWCombatComponent* CombatComponent = Owner->FindComponentByClass<UDWCombatComponent>())
 	{
@@ -173,9 +173,17 @@ bool UDWEnemyAIComponent::IsTargetValid() const
 	}
 	
 	const UDWBodyHealthComponent* TargetHealth = CurrentTarget->FindComponentByClass<UDWBodyHealthComponent>();
-	if (TargetHealth && TargetHealth->IsIncapacitated())
+	if (TargetHealth)
 	{
-		return false;
+		if (TargetHealth->IsIncapacitated())
+		{
+			return false;
+		}
+		
+		if (TargetHealth->IsInRecoveryGracePeriod())
+		{
+			return false;
+		}
 	}
 	
 	return true;
@@ -207,7 +215,7 @@ bool UDWEnemyAIComponent::IsTargetInAttackRange() const
 	}
 	
 	const float Distance = FVector::Dist2D(Owner->GetActorLocation(), CurrentTarget->GetActorLocation());
-	return Distance <= CombatComponent->GetAttackRange() + AttackRangeBuffer;
+	return Distance <= CombatComponent->GetAttackRange();
 }
 
 void UDWEnemyAIComponent::StartAI()
@@ -218,6 +226,8 @@ void UDWEnemyAIComponent::StartAI()
 	}
 	
 	bIsAIActive = true;
+	
+	Think();
 	
 	GetWorld()->GetTimerManager().SetTimer(
 	ThinkTimerHandle,
@@ -238,7 +248,7 @@ void UDWEnemyAIComponent::StopAI()
 	bIsAIActive = false;
 	CurrentTarget = nullptr;
 	
-	AIState = EDWEnemmyAIState::Idle;
+	AIState = EDWEnemyAIState::Idle;
 	
 	if (AActor* Owner = GetOwner())
 	{
@@ -254,13 +264,51 @@ void UDWEnemyAIComponent::StopAI()
 	}
 }
 
+void UDWEnemyAIComponent::SetTarget(AActor* NewTarget)
+{
+	CurrentTarget = NewTarget;
+	
+	if (!IsTargetValid())
+	{
+		CurrentTarget = nullptr;
+		AIState = EDWEnemyAIState::Idle;
+		return;
+	}
+	
+	if (!bIsAIActive)
+	{
+		StartAI();
+		return;
+	}
+	
+	Think();
+}
+
+void UDWEnemyAIComponent::ClearTarget()
+{
+	CurrentTarget = nullptr;
+	AIState = EDWEnemyAIState::Idle;
+	
+	if (AActor* Owner = GetOwner())
+	{
+		if (UDWCombatComponent* CombatComponent = Owner->FindComponentByClass<UDWCombatComponent>())
+		{
+			CombatComponent->StopAutoAttack();
+		}
+	}
+}
+
 bool UDWEnemyAIComponent::IsAIActive() const
 {
 	return bIsAIActive;
 }
 
-EDWEnemmyAIState UDWEnemyAIComponent::GetAIState() const
+EDWEnemyAIState UDWEnemyAIComponent::GetAIState() const
 {
 	return AIState;
 }
 
+AActor* UDWEnemyAIComponent::GetCurrentTarget() const
+{
+	return CurrentTarget;
+}
